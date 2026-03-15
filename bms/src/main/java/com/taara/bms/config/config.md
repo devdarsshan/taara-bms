@@ -1,0 +1,1 @@
+Any configuration of the application goes here

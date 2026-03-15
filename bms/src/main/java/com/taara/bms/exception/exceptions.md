@@ -1,0 +1,1 @@
+Any exceptions thrown in this app should be through this exceptions package

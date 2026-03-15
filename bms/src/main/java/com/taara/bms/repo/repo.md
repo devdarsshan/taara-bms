@@ -1,0 +1,1 @@
+All repos should be connected through here. Update the application properties with supabase db config and I'll add my project links there

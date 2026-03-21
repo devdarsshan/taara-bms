@@ -1,0 +1,25 @@
+<section class="placeholder">
+  <p-card styleClass="placeholder__card">
+    <ng-template pTemplate="header">
+      <div class="placeholder__header">
+        <div>
+          <p class="placeholder__eyebrow">Module scaffold</p>
+          <h1>{{ data.title }}</h1>
+          <p>{{ data.description }}</p>
+        </div>
+        <p-tag value="Next UI slice" severity="warn"></p-tag>
+      </div>
+    </ng-template>
+
+    <ul class="placeholder__list">
+      @for (highlight of data.highlights; track highlight) {
+        <li>{{ highlight }}</li>
+      }
+    </ul>
+
+    <div class="placeholder__actions">
+      <a pButton routerLink="/master-data" label="Review live module" icon="pi pi-database"></a>
+      <a pButton routerLink="/overview" label="Back to overview" icon="pi pi-arrow-left" severity="secondary" outlined="true"></a>
+    </div>
+  </p-card>
+</section>

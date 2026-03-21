@@ -1,0 +1,202 @@
+<div class="ops-page">
+  <section class="ops-summary-grid">
+    @for (card of summaryCards(); track card.title) {
+      <article [class]="'ops-summary-card ops-summary-card--' + card.tone">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">{{ card.title }}</span>
+          <div class="ops-summary-icon">
+            <i [class]="card.icon"></i>
+          </div>
+        </div>
+        <strong class="ops-summary-value">{{ card.value }}</strong>
+        <p>{{ card.note }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="ops-panel">
+    <div class="ops-panel-header">
+      <div>
+        <p class="ops-eyebrow">Order List</p>
+        <h2>Yarn orders</h2>
+      </div>
+      <span class="ops-muted">{{ totalOrders() }} active records</span>
+    </div>
+
+    <div class="ops-toolbar">
+      <div class="ops-toolbar-filters">
+        <p-select
+          [options]="styleOptions()"
+          [formControl]="filtersForm.controls.styleAutoId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Filter by style Id"
+          appendTo="body"
+        ></p-select>
+        <p-datePicker [formControl]="filtersForm.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+        <p-datePicker [formControl]="filtersForm.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+      </div>
+
+      <div class="ops-toolbar-actions">
+        <button pButton label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (click)="reloadOrders()"></button>
+        <button
+          pButton
+          icon="pi pi-trash"
+          severity="danger"
+          [outlined]="true"
+          class="ops-danger-button"
+          [disabled]="!selectedOrders().length"
+          (click)="confirmDeleteSelected()"
+        ></button>
+        <button pButton label="Add Order" icon="pi pi-plus" (click)="openCreate()"></button>
+      </div>
+    </div>
+
+    <p-table
+      [value]="orders()"
+      [lazy]="true"
+      [lazyLoadOnInit]="false"
+      [paginator]="true"
+      [rows]="tableQuery().size"
+      [first]="tableQuery().page * tableQuery().size"
+      [totalRecords]="totalOrders()"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      [loading]="loading()"
+      [sortField]="tableQuery().sortField"
+      [sortOrder]="tableQuery().sortDirection === 'asc' ? 1 : -1"
+      [tableStyle]="{ 'min-width': '62rem' }"
+      dataKey="autoId"
+      responsiveLayout="scroll"
+      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} yarn orders"
+      [showCurrentPageReport]="true"
+      [stripedRows]="true"
+      [selection]="selectedOrders()"
+      (selectionChange)="selectedOrders.set($event)"
+      (onLazyLoad)="onLazyLoad($event)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+          <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
+          <th pSortableColumn="orderDate">Order Date <p-sortIcon field="orderDate"></p-sortIcon></th>
+          <th>Style</th>
+          <th pSortableColumn="quantityKgs">Quantity <p-sortIcon field="quantityKgs"></p-sortIcon></th>
+          <th>Notes</th>
+          <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-record>
+        <tr (click)="openDetail(record)">
+          <td (click)="$event.stopPropagation()">
+            <p-tableCheckbox [value]="record"></p-tableCheckbox>
+          </td>
+          <td class="ops-table-id">{{ record.autoId }}</td>
+          <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
+          <td>{{ record.style.autoId }} - {{ record.style.styleName }}</td>
+          <td>{{ record.quantityKgs | number: '1.2-2' }} kg</td>
+          <td>{{ record.supplierNotes || 'No notes' }}</td>
+          <td>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="ops-empty-state">No yarn orders match the current filters.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</div>
+
+<p-dialog
+  [visible]="createVisible()"
+  [modal]="true"
+  [closable]="!submitting()"
+  [dismissableMask]="!submitting()"
+  [style]="{ width: '38rem', maxWidth: '95vw' }"
+  header="Create Yarn Order"
+  (visibleChange)="handleCreateDialogVisibilityChange($event)"
+>
+  <form [formGroup]="createForm" class="ops-form-grid">
+    @if (createError(); as error) {
+      <div class="ops-form-field ops-form-field--full">
+        <p-message severity="error" [text]="error"></p-message>
+      </div>
+    }
+
+    <div class="ops-form-field">
+      <label>Order date <span class="app-required">*</span></label>
+      <p-datePicker formControlName="orderDate" appendTo="body" [class.app-control-invalid]="isInvalid(createForm.controls.orderDate)"></p-datePicker>
+    </div>
+
+    <div class="ops-form-field">
+      <label>Style <span class="app-required">*</span></label>
+      <p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" appendTo="body" [class.app-control-invalid]="isInvalid(createForm.controls.styleAutoId)"></p-select>
+    </div>
+
+    <div class="ops-form-field">
+      <label>Quantity (kg) <span class="app-required">*</span></label>
+      <p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [class.app-control-invalid]="isInvalid(createForm.controls.quantityKgs)"></p-inputNumber>
+    </div>
+
+    <div class="ops-form-field ops-form-field--full">
+      <label>Supplier notes</label>
+      <textarea pTextarea formControlName="supplierNotes" rows="4"></textarea>
+    </div>
+
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Cancel" severity="secondary" [text]="true" [disabled]="submitting()" (click)="closeCreateDialog()"></button>
+      <button pButton type="button" label="Save order" [loading]="submitting()" (click)="createOrder()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  [visible]="detailVisible()"
+  [modal]="true"
+  [style]="{ width: '40rem', maxWidth: '95vw' }"
+  header="Yarn Order Details"
+  (visibleChange)="detailVisible.set($event)"
+>
+  @if (detailRecord(); as record) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Order date</span>
+          <span>{{ record.orderDate | date: 'dd MMM yyyy' }}</span>
+        </div>
+      </div>
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Style</span>
+          <span>{{ record.style.autoId }} - {{ record.style.styleName }}</span>
+        </div>
+      </div>
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Quantity</span>
+          <span>{{ record.quantityKgs | number: '1.2-2' }} kg</span>
+        </div>
+      </div>
+      <div class="ops-detail-card ops-detail-card--full">
+        <div class="ops-detail-row">
+          <span>Supplier notes</span>
+          <span>{{ record.supplierNotes || 'No notes provided' }}</span>
+        </div>
+      </div>
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Created</span>
+          <span>{{ record.createdAt | date: 'dd MMM yyyy, h:mm a' }}</span>
+        </div>
+      </div>
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Updated</span>
+          <span>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span>
+        </div>
+      </div>
+    </div>
+  }
+</p-dialog>

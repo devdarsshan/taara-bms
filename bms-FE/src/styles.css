@@ -1,1 +1,624 @@
-/* You can add global styles to this file, and also import other style files */
+@import "primeicons/primeicons.css";
+
+:root {
+  color-scheme: light;
+  --app-heading-font: "Segoe UI Variable Display", "Bahnschrift", "Aptos Display", sans-serif;
+  --app-body-font: "Segoe UI Variable Text", "Aptos", "Trebuchet MS", sans-serif;
+  --app-bg-1: #edf6ff;
+  --app-bg-2: #f6fbff;
+  --app-bg-3: #d9eaff;
+  --app-surface: rgba(255, 255, 255, 0.76);
+  --app-surface-elevated: rgba(255, 255, 255, 0.95);
+  --app-surface-highlight: rgba(248, 251, 255, 0.98);
+  --app-surface-muted: rgba(240, 246, 252, 0.98);
+  --app-sidebar-surface: rgba(255, 255, 255, 0.82);
+  --app-sidebar-tint: rgba(39, 142, 216, 0.14);
+  --app-text: #426072;
+  --app-text-strong: #102538;
+  --app-muted: #698195;
+  --app-accent: #278ed8;
+  --app-accent-strong: #70c3ff;
+  --app-accent-soft: rgba(39, 142, 216, 0.15);
+  --app-accent-outline: rgba(39, 142, 216, 0.22);
+  --app-accent-shadow: rgba(39, 142, 216, 0.5);
+  --app-border: rgba(28, 86, 127, 0.11);
+  --app-shadow-soft: 0 26px 54px -36px rgba(26, 72, 104, 0.32);
+  --app-shadow-tint: rgba(39, 142, 216, 0.28);
+  font-family: var(--app-body-font);
+}
+
+:root.app-dark,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --app-bg-1: #07111b;
+  --app-bg-2: #0a1622;
+  --app-bg-3: #132131;
+  --app-surface: rgba(10, 20, 31, 0.88);
+  --app-surface-elevated: rgba(13, 24, 38, 0.96);
+  --app-surface-highlight: rgba(17, 31, 46, 0.98);
+  --app-surface-muted: rgba(12, 23, 36, 0.98);
+  --app-sidebar-surface: rgba(8, 15, 23, 0.94);
+  --app-sidebar-tint: rgba(112, 195, 255, 0.1);
+  --app-text: #9cb3c5;
+  --app-text-strong: #eef7ff;
+  --app-muted: #8097aa;
+  --app-accent: #64bcff;
+  --app-accent-strong: #a0dbff;
+  --app-accent-soft: rgba(100, 188, 255, 0.17);
+  --app-accent-outline: rgba(100, 188, 255, 0.24);
+  --app-accent-shadow: rgba(100, 188, 255, 0.38);
+  --app-border: rgba(155, 195, 227, 0.13);
+  --app-shadow-soft: 0 28px 60px -38px rgba(0, 0, 0, 0.62);
+  --app-shadow-tint: rgba(100, 188, 255, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--app-body-font);
+  color: var(--app-text);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--app-accent-strong) 18%, transparent), transparent 30%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--app-accent) 14%, transparent), transparent 24%),
+    linear-gradient(180deg, var(--app-bg-1) 0%, var(--app-bg-2) 48%, var(--app-bg-3) 100%);
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    background-color 220ms ease;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.p-component {
+  font-family: var(--app-body-font);
+}
+
+.p-card,
+.p-dialog,
+.p-toast-message,
+.p-message {
+  border-radius: 1.35rem;
+}
+
+.p-card {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-elevated);
+  box-shadow: var(--app-shadow-soft);
+}
+
+.p-button {
+  border-radius: 0.95rem;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.p-button:not(.p-disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 34px -26px color-mix(in srgb, var(--app-accent-shadow) 36%, transparent);
+}
+
+.p-button.p-button-secondary.p-button-text,
+.p-button.p-button-text {
+  color: var(--app-text-strong);
+}
+
+.p-inputtext,
+.p-select,
+.p-selectbutton .p-button {
+  border-radius: 0.95rem;
+}
+
+.p-inputtext,
+.p-selectbutton .p-button,
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-content,
+.p-dialog .p-dialog-footer,
+.p-checkbox .p-checkbox-box,
+.p-toggleswitch .p-toggleswitch-slider {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.p-inputtext {
+  background: var(--app-surface-highlight);
+  border-color: var(--app-border);
+  color: var(--app-text-strong);
+  box-shadow: none;
+}
+
+.p-inputtext::placeholder {
+  color: var(--app-muted);
+}
+
+.app-required {
+  color: #e24b5b;
+  font-weight: 800;
+}
+
+.app-control-invalid,
+.app-control-invalid.p-select,
+.app-control-invalid.p-inputnumber,
+.app-control-invalid .p-inputtext,
+.app-control-invalid .p-inputnumber-input,
+.app-control-invalid .p-select-label,
+.app-control-invalid .p-select-dropdown,
+.app-control-invalid .p-selectbutton .p-button {
+  border-color: #e24b5b !important;
+}
+
+.app-control-invalid,
+.app-control-invalid.p-select,
+.app-control-invalid.p-inputnumber,
+.app-control-invalid .p-inputtext,
+.app-control-invalid .p-inputnumber-input,
+.app-control-invalid .p-select,
+.app-control-invalid .p-selectbutton {
+  box-shadow: 0 0 0 0.08rem color-mix(in srgb, #e24b5b 18%, transparent);
+}
+
+.p-inputtext:enabled:hover,
+.p-select:not(.p-disabled):hover,
+.p-selectbutton .p-button:not(.p-disabled):hover,
+.p-checkbox:not(.p-disabled):hover .p-checkbox-box {
+  border-color: color-mix(in srgb, var(--app-accent) 34%, var(--app-border));
+}
+
+.p-datatable,
+.p-paginator {
+  background: transparent;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  white-space: nowrap;
+  background: var(--app-surface-muted);
+  border-color: var(--app-border);
+  color: var(--app-text-strong);
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  background: transparent;
+  border-color: var(--app-border);
+  color: var(--app-text-strong);
+}
+
+.p-datatable .p-datatable-tbody > tr:hover > td {
+  background: color-mix(in srgb, var(--app-accent-soft) 55%, transparent);
+}
+
+.p-datatable .p-datatable-tbody > tr > td,
+.p-datatable .p-datatable-thead > tr > th {
+  padding: 0.95rem 1rem;
+}
+
+.p-paginator {
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last,
+.p-paginator .p-paginator-rpp-options {
+  color: var(--app-text-strong);
+}
+
+.p-tabview .p-tabview-nav {
+  background: transparent;
+  border: 0;
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--app-muted);
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: var(--app-text-strong);
+  border-color: transparent;
+}
+
+.p-tabview .p-tabview-panels {
+  padding: 1rem 0 0;
+  background: transparent;
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-content,
+.p-dialog .p-dialog-footer {
+  background: var(--app-surface-elevated);
+  color: var(--app-text-strong);
+}
+
+.p-dialog .p-dialog-header,
+.p-dialog .p-dialog-footer {
+  border-color: var(--app-border);
+}
+
+.p-checkbox .p-checkbox-box {
+  background: var(--app-surface-highlight);
+  border-color: var(--app-border);
+}
+
+.p-selectbutton .p-button {
+  background: var(--app-surface-highlight);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.p-selectbutton .p-button.p-highlight {
+  background: var(--app-accent-soft);
+  border-color: var(--app-accent-outline);
+  color: var(--app-text-strong);
+}
+
+.p-tag {
+  border-radius: 999px;
+}
+
+.p-message {
+  background: var(--app-surface-highlight);
+  color: var(--app-text-strong);
+  border-color: var(--app-border);
+}
+
+.p-toast-message {
+  background: var(--app-surface-elevated);
+  color: var(--app-text-strong);
+  border: 1px solid var(--app-border);
+}
+
+.p-toggleswitch .p-toggleswitch-slider {
+  background: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+}
+
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+  background: color-mix(in srgb, var(--app-accent) 78%, #ffffff 22%);
+}
+
+.ops-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.ops-header,
+.ops-panel,
+.ops-summary-card,
+.ops-detail-card {
+  border: 1px solid var(--app-border);
+  border-radius: 1.6rem;
+  background: linear-gradient(180deg, var(--app-surface-highlight), var(--app-surface-elevated));
+  box-shadow: var(--app-shadow-soft);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.ops-header:hover,
+.ops-panel:hover,
+.ops-summary-card:hover,
+.ops-detail-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--app-accent) 28%, var(--app-border));
+  box-shadow: 0 28px 48px -32px color-mix(in srgb, var(--app-accent-shadow) 30%, transparent);
+}
+
+.ops-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.45rem 1.55rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.ops-header::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -50% auto;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--app-accent) 22%, transparent), transparent 68%);
+  pointer-events: none;
+}
+
+.ops-header-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.ops-eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--app-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ops-header h1,
+.ops-panel h2,
+.ops-detail-card h3 {
+  margin: 0;
+  color: var(--app-text-strong);
+  font-family: var(--app-heading-font);
+  letter-spacing: -0.05em;
+}
+
+.ops-header h1 {
+  font-size: clamp(1.85rem, 2.8vw, 2.5rem);
+}
+
+.ops-header p,
+.ops-summary-card p,
+.ops-detail-row span:last-child,
+.ops-empty-state,
+.ops-muted {
+  color: var(--app-muted);
+}
+
+.ops-header p {
+  margin: 0.65rem 0 0;
+  max-width: 44rem;
+  line-height: 1.7;
+}
+
+.ops-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.ops-summary-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+.ops-summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 0.24rem;
+  background: linear-gradient(90deg, var(--ops-accent-start), var(--ops-accent-end));
+}
+
+.ops-summary-card--ocean {
+  --ops-accent-start: #2f87d1;
+  --ops-accent-end: #6cc5ff;
+}
+
+.ops-summary-card--teal {
+  --ops-accent-start: #1d8f8a;
+  --ops-accent-end: #49c8c1;
+}
+
+.ops-summary-card--indigo {
+  --ops-accent-start: #4c5fd5;
+  --ops-accent-end: #8b98ff;
+}
+
+.ops-summary-card--amber {
+  --ops-accent-start: #c27b24;
+  --ops-accent-end: #f0b667;
+}
+
+.ops-summary-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ops-summary-icon {
+  display: grid;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--ops-accent-start) 16%, transparent);
+  color: var(--ops-accent-start);
+  font-size: 1rem;
+}
+
+.ops-summary-title {
+  color: var(--app-text-strong);
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.ops-summary-value {
+  color: var(--app-text-strong);
+  font-size: clamp(1.9rem, 2.8vw, 2.45rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.07em;
+}
+
+.ops-panel {
+  padding: 1.25rem 1.35rem 1.4rem;
+}
+
+.ops-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ops-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ops-toolbar-actions,
+.ops-toolbar-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.ops-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.95rem;
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
+  font-size: 0.92rem;
+}
+
+.ops-search {
+  width: min(22rem, 100%);
+}
+
+.ops-filter-grid,
+.ops-form-grid,
+.ops-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ops-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ops-form-field label {
+  color: var(--app-text-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ops-form-field .p-inputnumber,
+.ops-form-field .p-select,
+.ops-form-field .p-datepicker,
+.ops-form-field textarea,
+.ops-form-field .p-selectbutton {
+  width: 100%;
+}
+
+.ops-form-field--full,
+.ops-detail-card--full {
+  grid-column: 1 / -1;
+}
+
+.ops-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.ops-detail-card {
+  padding: 1.05rem 1.1rem;
+}
+
+.ops-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ops-detail-row span:first-child {
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ops-detail-row span:last-child {
+  color: var(--app-text-strong);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.ops-table-id {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.92rem;
+}
+
+.ops-empty-state {
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.ops-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ops-danger-button.p-button:disabled {
+  opacity: 0.55;
+}
+
+@media (max-width: 720px) {
+  .ops-header,
+  .ops-panel-header,
+  .ops-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ops-summary-grid,
+  .ops-filter-grid,
+  .ops-form-grid,
+  .ops-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-search {
+    width: 100%;
+  }
+
+  .ops-dialog-actions,
+  .ops-toolbar-actions,
+  .ops-toolbar-filters {
+    width: 100%;
+  }
+}

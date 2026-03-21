@@ -1,0 +1,236 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.shell--collapsed {
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+}
+
+.shell__sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+  padding: 2rem 1.35rem;
+  background:
+    linear-gradient(180deg, var(--app-sidebar-tint), transparent),
+    var(--app-sidebar-surface);
+  border-right: 1px solid var(--app-border);
+  backdrop-filter: blur(16px);
+}
+
+.shell__collapse {
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.9rem;
+  background: var(--app-surface-highlight);
+  color: var(--app-text-strong);
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.shell__brand h1,
+.shell__header h2,
+.shell__meta h2 {
+  margin: 0;
+  font-family: var(--app-heading-font);
+  letter-spacing: -0.03em;
+}
+
+.shell__brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--app-accent-strong), var(--app-accent));
+  color: white;
+  font-family: var(--app-heading-font);
+  font-size: 1.25rem;
+  box-shadow: 0 18px 36px -20px var(--app-accent-shadow);
+}
+
+.shell__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--app-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shell__nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 1.15rem;
+  color: var(--app-text-strong);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.shell__nav-link:hover {
+  border-color: var(--app-accent-outline);
+  background: var(--app-surface-highlight);
+  transform: translateX(2px);
+}
+
+.shell__nav-link--active {
+  border-color: var(--app-accent-outline);
+  background: linear-gradient(135deg, var(--app-accent-soft), var(--app-surface-highlight));
+  box-shadow: 0 18px 35px -26px var(--app-shadow-tint);
+}
+
+.shell__nav-icon {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.95rem;
+  background: var(--app-accent-soft);
+  color: var(--app-accent);
+}
+
+.shell__nav-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.shell__nav-copy strong {
+  font-size: 0.95rem;
+}
+
+.shell__nav-copy small {
+  color: var(--app-muted);
+  font-size: 0.78rem;
+}
+
+.shell__theme {
+  margin-top: auto;
+  padding: 1.2rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1.4rem;
+  background: linear-gradient(180deg, var(--app-surface-highlight), var(--app-surface-elevated));
+  box-shadow: var(--app-shadow-soft);
+}
+
+.shell__theme-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.shell__theme h2 {
+  margin: 0;
+  font-family: var(--app-heading-font);
+  letter-spacing: -0.03em;
+}
+
+.shell__theme-state {
+  color: var(--app-text-strong);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.shell--collapsed .shell__sidebar {
+  padding-inline: 1rem;
+}
+
+.shell--collapsed .shell__brand,
+.shell--collapsed .shell__nav-link,
+.shell--collapsed .shell__theme-toggle {
+  justify-content: center;
+}
+
+.shell--collapsed .shell__theme {
+  padding: 0.9rem;
+}
+
+.shell__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.6rem;
+}
+
+.shell__page {
+  min-width: 0;
+}
+
+.shell__theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--app-accent-soft) 60%, transparent);
+  color: var(--app-muted);
+}
+
+.shell__theme-toggle i {
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1080px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell__sidebar {
+    position: static;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .shell__nav {
+    overflow-x: auto;
+    flex-direction: row;
+    padding-bottom: 0.25rem;
+  }
+
+  .shell__nav-link {
+    min-width: 13rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell__content {
+    padding: 1rem;
+  }
+
+  .shell__nav-link {
+    min-width: 11rem;
+  }
+}

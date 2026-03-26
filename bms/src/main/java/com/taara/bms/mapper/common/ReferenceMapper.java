@@ -20,6 +20,12 @@ public class ReferenceMapper {
     }
 
     public StitchingSectionRefResponse toSectionRef(StitchingSection section) {
-        return new StitchingSectionRefResponse(section.getId(), section.getAutoId(), section.getSectionName(), section.getType());
+        return new StitchingSectionRefResponse(
+                section.getId(),
+                section.getAutoId(),
+                section.getSectionName(),
+                section.getType(),
+                section.getProcessType()
+        );
     }
 }

@@ -1,10 +1,9 @@
 package com.taara.bms.dto.common;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 public record ApiErrorResponse(
-        LocalDateTime timestamp,
+        String timestamp,
         int status,
         String error,
         String code,

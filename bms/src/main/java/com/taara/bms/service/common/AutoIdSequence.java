@@ -11,7 +11,10 @@ public enum AutoIdSequence {
     INHOUSE_STOCK_SPLIT("inhouse_stock_split_auto_seq", "STK"),
     CUTTING("cutting_auto_seq", "CUT"),
     STITCHING_ORDER("stitching_order_auto_seq", "STO"),
-    STITCHING_DELIVERY("stitching_delivery_auto_seq", "STD");
+    STITCHING_DELIVERY("stitching_delivery_auto_seq", "STD"),
+    PRINTING_ORDER("printing_order_auto_seq", "PRO"),
+    PRINTING_DELIVERY("printing_delivery_auto_seq", "PRD"),
+    PACKING("packing_auto_seq", "PAC");
 
     private final String sequenceName;
     private final String prefix;

@@ -1,6 +1,7 @@
 package com.taara.bms.entity.masterdata;
 
 import com.taara.bms.entity.common.BaseEntity;
+import com.taara.bms.enums.SectionProcessType;
 import com.taara.bms.enums.StitchingSectionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,6 +30,10 @@ public class StitchingSection extends BaseEntity {
     private String sectionName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(name = "partner_type", nullable = false, length = 30)
     private StitchingSectionType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "process_type", nullable = false, length = 30)
+    private SectionProcessType processType;
 }

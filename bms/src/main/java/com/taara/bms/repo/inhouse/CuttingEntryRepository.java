@@ -13,16 +13,31 @@ public interface CuttingEntryRepository extends JpaRepository<CuttingEntry, UUID
 
     Optional<CuttingEntry> findByAutoIdIgnoreCase(String autoId);
 
-    boolean existsByStyle_IdAndIsDeletedFalse(UUID styleId);
-
-    boolean existsByDia_IdAndIsDeletedFalse(UUID diaId);
+    @Query("""
+            select count(c) > 0
+            from CuttingEntry c
+            join c.rows r
+            where c.isDeleted = false
+              and r.style.id = :styleId
+            """)
+    boolean existsActiveByRowStyleId(@Param("styleId") UUID styleId);
 
     @Query("""
-            select coalesce(sum(c.quantityUsedKgs), 0)
+            select count(c) > 0
             from CuttingEntry c
+            join c.rows r
             where c.isDeleted = false
-              and c.dia.id = :diaId
-              and c.style.id = :styleId
+              and r.dia.id = :diaId
+            """)
+    boolean existsActiveByRowDiaId(@Param("diaId") UUID diaId);
+
+    @Query("""
+            select coalesce(sum(r.quantityUsedKgs), 0)
+            from CuttingEntry c
+            join c.rows r
+            where c.isDeleted = false
+              and r.dia.id = :diaId
+              and r.style.id = :styleId
             """)
     BigDecimal sumActiveQuantityByDiaAndStyle(@Param("diaId") UUID diaId, @Param("styleId") UUID styleId);
 }

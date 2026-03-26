@@ -1,10 +1,10 @@
 import { FormArray, FormControl, FormGroup, Validators } from '@angular/forms';
 import { QueryOptions } from '../../core/models/api.models';
+import { SectionProcessType, StitchingSectionType } from '../../core/models/common.models';
 import {
   Dia,
   DiaUpsertRequest,
   StitchingSection,
-  StitchingSectionType,
   StitchingSectionUpsertRequest,
   Style,
   StyleUpsertRequest
@@ -24,6 +24,7 @@ type DiaFormGroup = FormGroup<{
 type SectionFormGroup = FormGroup<{
   sectionName: FormControl<string>;
   type: FormControl<StitchingSectionType>;
+  processType: FormControl<SectionProcessType>;
 }>;
 
 export class StyleCrudController extends BaseCrudController<Style, StyleUpsertRequest, StyleFormGroup> {
@@ -77,14 +78,6 @@ export class StyleCrudController extends BaseCrudController<Style, StyleUpsertRe
           .filter((color) => color.length > 0)
       )
     );
-
-    if (!colors.length) {
-      this.form.controls.colors.setErrors({
-        ...(this.form.controls.colors.errors ?? {}),
-        required: true
-      });
-      return this.setDialogError('Add at least one color before saving the style.');
-    }
 
     return {
       styleName: this.form.controls.styleName.getRawValue().trim(),
@@ -141,7 +134,7 @@ export class StyleCrudController extends BaseCrudController<Style, StyleUpsertRe
   }
 
   private createColorControl(value = ''): FormControl<string> {
-    return this.fb.control(value, Validators.required);
+    return this.fb.control(value);
   }
 }
 
@@ -245,28 +238,32 @@ export class SectionCrudController extends BaseCrudController<
   protected buildForm(): SectionFormGroup {
     return this.fb.group({
       sectionName: this.fb.control('', Validators.required),
-      type: this.fb.control<StitchingSectionType>('INTERNAL', Validators.required)
+      type: this.fb.control<StitchingSectionType>('INTERNAL', Validators.required),
+      processType: this.fb.control<SectionProcessType>('STITCHING', Validators.required)
     });
   }
 
   protected fillForm(entity: StitchingSection): void {
     this.form.setValue({
       sectionName: entity.sectionName,
-      type: entity.type
+      type: entity.type,
+      processType: entity.processType
     });
   }
 
   protected resetForm(): void {
     this.form.reset({
       sectionName: '',
-      type: 'INTERNAL'
+      type: 'INTERNAL',
+      processType: 'STITCHING'
     });
   }
 
   protected buildPayload(): StitchingSectionUpsertRequest {
     return {
       sectionName: this.form.controls.sectionName.getRawValue().trim(),
-      type: this.form.controls.type.getRawValue()
+      type: this.form.controls.type.getRawValue(),
+      processType: this.form.controls.processType.getRawValue()
     };
   }
 

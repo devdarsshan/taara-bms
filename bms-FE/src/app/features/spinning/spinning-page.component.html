@@ -16,7 +16,7 @@
     <p-tabPanel header="Orders">
       <section class="ops-panel">
         <div class="ops-panel-header">
-          <div><p class="ops-eyebrow">Dispatch Orders</p><h2>Spinning orders</h2></div>
+          <div><p class="ops-eyebrow">Dispatch Orders</p><h2>Knitting orders</h2></div>
           <span class="ops-muted">{{ totalOrders() }} active records</span>
         </div>
         <div class="ops-toolbar">
@@ -44,7 +44,7 @@
           [tableStyle]="{ 'min-width': '68rem' }"
           dataKey="autoId"
           responsiveLayout="scroll"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} spinning orders"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} knitting orders"
           [showCurrentPageReport]="true"
           [stripedRows]="true"
           [selection]="selectedOrders()"
@@ -82,7 +82,7 @@
     <p-tabPanel header="Deliveries">
       <section class="ops-panel">
         <div class="ops-panel-header">
-          <div><p class="ops-eyebrow">Receipts</p><h2>Spinning deliveries</h2></div>
+          <div><p class="ops-eyebrow">Receipts</p><h2>Knitting deliveries</h2></div>
           <span class="ops-muted">{{ totalDeliveries() }} active records</span>
         </div>
         <div class="ops-toolbar">
@@ -109,7 +109,7 @@
           [tableStyle]="{ 'min-width': '64rem' }"
           dataKey="autoId"
           responsiveLayout="scroll"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} spinning deliveries"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} knitting deliveries"
           [showCurrentPageReport]="true"
           [stripedRows]="true"
           [selection]="selectedDeliveries()"
@@ -146,7 +146,7 @@
   </p-tabView>
 </div>
 
-<p-dialog [visible]="orderCreateVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Create Spinning Order" (visibleChange)="handleOrderCreateVisibilityChange($event)">
+<p-dialog [visible]="orderCreateVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Create Knitting Order" (visibleChange)="handleOrderCreateVisibilityChange($event)">
   <form [formGroup]="createOrderForm" class="ops-form-grid">
     @if (orderError(); as error) {
       <div class="ops-form-field ops-form-field--full"><p-message severity="error" [text]="error"></p-message></div>
@@ -163,7 +163,7 @@
   </form>
 </p-dialog>
 
-<p-dialog [visible]="deliveryCreateVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Create Spinning Delivery" (visibleChange)="handleDeliveryCreateVisibilityChange($event)">
+<p-dialog [visible]="deliveryCreateVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Create Knitting Delivery" (visibleChange)="handleDeliveryCreateVisibilityChange($event)">
   <form [formGroup]="createDeliveryForm" class="ops-form-grid">
     @if (deliveryError(); as error) {
       <div class="ops-form-field ops-form-field--full"><p-message severity="error" [text]="error"></p-message></div>
@@ -180,7 +180,7 @@
   </form>
 </p-dialog>
 
-<p-dialog [visible]="orderDetailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Spinning Order Details" (visibleChange)="orderDetailVisible.set($event)">
+<p-dialog [visible]="orderDetailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Knitting Order Details" (visibleChange)="orderDetailVisible.set($event)">
   @if (orderDetail(); as record) {
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Dispatch date</span><span>{{ record.dispatchDate | date: 'dd MMM yyyy' }}</span></div></div>
@@ -192,7 +192,7 @@
   }
 </p-dialog>
 
-<p-dialog [visible]="deliveryDetailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Spinning Delivery Details" (visibleChange)="deliveryDetailVisible.set($event)">
+<p-dialog [visible]="deliveryDetailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Knitting Delivery Details" (visibleChange)="deliveryDetailVisible.set($event)">
   @if (deliveryDetail(); as record) {
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Delivery date</span><span>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</span></div></div>

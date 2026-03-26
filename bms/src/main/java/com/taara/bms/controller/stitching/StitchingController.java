@@ -7,6 +7,7 @@ import com.taara.bms.dto.stitching.StitchingAvailabilityResponse;
 import com.taara.bms.dto.stitching.StitchingOrderCreateRequest;
 import com.taara.bms.dto.stitching.StitchingOrderResponse;
 import com.taara.bms.dto.stitching.StitchingOrderStatusUpdateRequest;
+import com.taara.bms.enums.GarmentSize;
 import com.taara.bms.enums.StitchingOrderStatus;
 import com.taara.bms.service.stitching.StitchingService;
 import jakarta.validation.Valid;
@@ -54,15 +55,18 @@ public class StitchingController {
 
     @PostMapping("/orders")
     public StitchingOrderResponse createOrder(@Valid @RequestBody StitchingOrderCreateRequest request) {
-        log.info("Creating stitching order. styleAutoId='{}', sectionAutoId='{}', orderDate={}",
-                request.styleAutoId(), request.stitchingSectionAutoId(), request.orderDate());
+        log.info("Creating stitching order. orderDate={}, expectedSize={}, expectedPieces={}, rowCount={}",
+                request.orderDate(), request.expectedSize(), request.expectedPieces(), request.rows().size());
         return stitchingService.createOrder(request);
     }
 
     @GetMapping("/available-order-pieces")
-    public StitchingAvailabilityResponse getAvailableOrderPieces(@RequestParam String styleAutoId) {
-        log.info("Fetching available stitching order pieces. styleAutoId='{}'", styleAutoId);
-        return stitchingService.getAvailableOrderPieces(styleAutoId);
+    public StitchingAvailabilityResponse getAvailableOrderPieces(
+            @RequestParam String styleAutoId,
+            @RequestParam(name = "garmentSize") GarmentSize size
+    ) {
+        log.info("Fetching available stitching order pieces. styleAutoId='{}', size={}", styleAutoId, size);
+        return stitchingService.getAvailableOrderPieces(styleAutoId, size);
     }
 
     @PatchMapping("/orders/{orderAutoId}/status")
@@ -79,30 +83,35 @@ public class StitchingController {
 
     @GetMapping("/deliveries")
     public Page<StitchingDeliveryResponse> getDeliveries(
-            @RequestParam(required = false) String orderAutoId,
             @RequestParam(required = false) String styleAutoId,
             @RequestParam(required = false) String sectionAutoId,
+            @RequestParam(name = "garmentSize", required = false) GarmentSize size,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "false") boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching stitching deliveries. orderAutoId='{}', styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
-                orderAutoId, styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
-        return stitchingService.getDeliveries(orderAutoId, styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable);
+        log.info("Fetching stitching deliveries. styleAutoId='{}', sectionAutoId='{}', size={}, fromDate={}, toDate={}, includeDeleted={}, page={}",
+                styleAutoId, sectionAutoId, size, fromDate, toDate, includeDeleted, pageable.getPageNumber());
+        return stitchingService.getDeliveries(styleAutoId, sectionAutoId, size, fromDate, toDate, includeDeleted, pageable);
     }
 
     @PostMapping("/deliveries")
     public StitchingDeliveryResponse createDelivery(@Valid @RequestBody StitchingDeliveryCreateRequest request) {
-        log.info("Creating stitching delivery. orderAutoId='{}', deliveryDate={}, overrideWarnings={}",
-                request.stitchingOrderAutoId(), request.deliveryDate(), request.overrideWarnings());
+        log.info("Creating stitching delivery. sectionAutoId='{}', styleAutoId='{}', size={}, deliveryDate={}",
+                request.stitchingSectionAutoId(), request.styleAutoId(), request.size(), request.deliveryDate());
         return stitchingService.createDelivery(request);
     }
 
-    @GetMapping("/orders/{orderAutoId}/available-delivery-pieces")
-    public StitchingAvailabilityResponse getAvailableDeliveryPieces(@PathVariable String orderAutoId) {
-        log.info("Fetching available stitching delivery pieces. orderAutoId='{}'", orderAutoId);
-        return stitchingService.getAvailableDeliveryPieces(orderAutoId);
+    @GetMapping("/available-delivery-pieces")
+    public StitchingAvailabilityResponse getAvailableDeliveryPieces(
+            @RequestParam String sectionAutoId,
+            @RequestParam String styleAutoId,
+            @RequestParam(name = "garmentSize") GarmentSize size
+    ) {
+        log.info("Fetching available stitching delivery pieces. sectionAutoId='{}', styleAutoId='{}', size={}",
+                sectionAutoId, styleAutoId, size);
+        return stitchingService.getAvailableDeliveryPieces(sectionAutoId, styleAutoId, size);
     }
 
     @DeleteMapping("/deliveries/{deliveryAutoId}")

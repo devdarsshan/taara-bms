@@ -7,7 +7,8 @@ public record InHouseDashboardResponse(
         long cuttingInProgressCount,
         int totalPiecesCut,
         int readyToStitchPieces,
-        int stitchedStockTotal,
+        int stitchedPlainStockTotal,
+        int printedStockTotal,
         int defectiveStockTotal
 ) {
 }

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { PageResponse, QueryOptions } from '../models/api.models';
+import { GarmentSize } from '../models/common.models';
 import {
   StitchingAvailability,
   StitchingDashboardResponse,
@@ -28,8 +29,8 @@ export class StitchingApiService {
     return this.api.post<StitchingOrder, StitchingOrderCreateRequest>('/stitching/orders', payload);
   }
 
-  getAvailableOrderPieces(styleAutoId: string) {
-    return this.api.get<StitchingAvailability>('/stitching/available-order-pieces', { styleAutoId });
+  getAvailableOrderPieces(styleAutoId: string, size: GarmentSize) {
+    return this.api.get<StitchingAvailability>('/stitching/available-order-pieces', { styleAutoId, garmentSize: size });
   }
 
   updateOrderStatus(orderAutoId: string, payload: StitchingOrderStatusUpdateRequest) {
@@ -41,7 +42,7 @@ export class StitchingApiService {
   }
 
   getDeliveries(
-    query: QueryOptions & { orderAutoId?: string; styleAutoId?: string; sectionAutoId?: string; fromDate?: string; toDate?: string }
+    query: QueryOptions & { styleAutoId?: string; sectionAutoId?: string; garmentSize?: GarmentSize | null; fromDate?: string; toDate?: string }
   ) {
     return this.api.get<PageResponse<StitchingDelivery>>('/stitching/deliveries', this.toPageParams(query));
   }
@@ -50,8 +51,12 @@ export class StitchingApiService {
     return this.api.post<StitchingDelivery, StitchingDeliveryCreateRequest>('/stitching/deliveries', payload);
   }
 
-  getAvailableDeliveryPieces(orderAutoId: string) {
-    return this.api.get<StitchingAvailability>(`/stitching/orders/${orderAutoId}/available-delivery-pieces`);
+  getAvailableDeliveryPieces(sectionAutoId: string, styleAutoId: string, size: GarmentSize) {
+    return this.api.get<StitchingAvailability>('/stitching/available-delivery-pieces', {
+      sectionAutoId,
+      styleAutoId,
+      garmentSize: size
+    });
   }
 
   deleteDelivery(deliveryAutoId: string) {
@@ -69,14 +74,12 @@ export class StitchingApiService {
   }
 
   private toPageParams(
-    query: QueryOptions & { orderAutoId?: string; styleAutoId?: string; sectionAutoId?: string; status?: string | null; fromDate?: string; toDate?: string }
+    query: QueryOptions & { styleAutoId?: string; sectionAutoId?: string; garmentSize?: GarmentSize | null; status?: string | null; fromDate?: string; toDate?: string }
   ) {
     const sort = query.sortField ? `${query.sortField},${query.sortDirection ?? 'asc'}` : undefined;
-
-    return {
+    const params: Record<string, string | number | boolean | undefined> = {
       page: query.page,
       size: query.size,
-      orderAutoId: query.orderAutoId,
       styleAutoId: query.styleAutoId,
       sectionAutoId: query.sectionAutoId,
       status: query.status ?? undefined,
@@ -85,5 +88,9 @@ export class StitchingApiService {
       includeDeleted: query.includeDeleted ?? false,
       sort
     };
+    if (query.garmentSize) {
+      params['garmentSize'] = query.garmentSize;
+    }
+    return params;
   }
 }

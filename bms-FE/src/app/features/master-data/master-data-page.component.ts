@@ -61,6 +61,10 @@ export class MasterDataPageComponent {
     { label: 'Internal', value: 'INTERNAL' as const },
     { label: 'External', value: 'EXTERNAL' as const }
   ];
+  readonly sectionProcessOptions = [
+    { label: 'Stitching', value: 'STITCHING' as const },
+    { label: 'Printing', value: 'PRINTING' as const }
+  ];
 
   readonly stylesCrud: StyleCrudController;
   readonly diasCrud: DiaCrudController;

@@ -1,10 +1,12 @@
 package com.taara.bms.dto.inhouse;
 
-import jakarta.validation.constraints.Min;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 
 public record CuttingUpdateRequest(
-        @Min(value = 1, message = "Output pieces must be positive")
-        Integer outputPieces,
+        @NotEmpty(message = "At least one cutting row is required")
+        List<@Valid CuttingRowRequest> rows,
         String notes
 ) {
 }

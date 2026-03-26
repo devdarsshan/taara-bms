@@ -101,8 +101,7 @@ public class InHouseController {
 
     @PostMapping("/cuttings")
     public CuttingResponse createCutting(@Valid @RequestBody CuttingCreateRequest request) {
-        log.info("Creating cutting. diaAutoId='{}', styleAutoId='{}', cuttingDate={}",
-                request.diaAutoId(), request.styleAutoId(), request.cuttingDate());
+        log.info("Creating cutting. cuttingDate={}, rowCount={}", request.cuttingDate(), request.rows().size());
         return inHouseService.createCutting(request);
     }
 
@@ -117,7 +116,7 @@ public class InHouseController {
 
     @PatchMapping("/cuttings/{cuttingAutoId}")
     public CuttingResponse updateCutting(@PathVariable String cuttingAutoId, @Valid @RequestBody CuttingUpdateRequest request) {
-        log.info("Updating cutting. cuttingAutoId='{}', outputPieces={}", cuttingAutoId, request.outputPieces());
+        log.info("Updating cutting. cuttingAutoId='{}', rowCount={}", cuttingAutoId, request.rows().size());
         return inHouseService.updateCutting(cuttingAutoId, request);
     }
 

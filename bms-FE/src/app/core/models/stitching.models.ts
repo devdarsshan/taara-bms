@@ -1,9 +1,10 @@
-import { StitchingSectionRef, StyleRef } from './common.models';
+import { GarmentSize, StitchingSectionRef, StyleRef } from './common.models';
 
-export type StitchingOrderStatus = 'PENDING' | 'PARTIALLY_DELIVERED' | 'COMPLETE';
+export type StitchingOrderStatus = 'PENDING' | 'PARTIALLY_DELIVERED' | 'COMPLETE' | 'AUTO_CLOSED';
 
 export interface StitchingAvailability {
   styleAutoId: string;
+  size: GarmentSize;
   availablePieces: number;
 }
 
@@ -21,17 +22,26 @@ export interface StitchingDashboardResponse {
   ordersBySection: SectionPendingPiecesResponse[];
 }
 
+export interface StitchingOrderRow {
+  id: string;
+  stitchingSection: StitchingSectionRef;
+  style: StyleRef;
+  size: GarmentSize;
+  piecesTaken: number;
+}
+
 export interface StitchingOrder {
   id: string;
   autoId: string;
   orderDate: string;
-  stitchingSection: StitchingSectionRef;
-  style: StyleRef;
-  piecesOrdered: number;
+  expectedSize: GarmentSize;
+  expectedPieces: number;
   deliveredPieces: number;
   pendingPieces: number;
+  totalPiecesTaken: number;
   status: StitchingOrderStatus;
   notes: string | null;
+  rows: StitchingOrderRow[];
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -41,21 +51,27 @@ export interface StitchingDelivery {
   id: string;
   autoId: string;
   deliveryDate: string;
-  stitchingOrderId: string;
-  stitchingOrderAutoId: string;
   stitchingSection: StitchingSectionRef;
   style: StyleRef;
+  size: GarmentSize;
   piecesDelivered: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface StitchingOrderCreateRequest {
-  orderDate: string;
+export interface StitchingOrderRowRequest {
   stitchingSectionAutoId: string;
   styleAutoId: string;
-  piecesOrdered: number;
+  size: GarmentSize;
+  piecesTaken: number;
+}
+
+export interface StitchingOrderCreateRequest {
+  orderDate: string;
+  expectedSize: GarmentSize;
+  expectedPieces: number;
+  rows: StitchingOrderRowRequest[];
   notes?: string | null;
 }
 
@@ -65,7 +81,8 @@ export interface StitchingOrderStatusUpdateRequest {
 
 export interface StitchingDeliveryCreateRequest {
   deliveryDate: string;
-  stitchingOrderAutoId: string;
+  stitchingSectionAutoId: string;
+  styleAutoId: string;
+  size: GarmentSize;
   piecesDelivered: number;
-  overrideWarnings: boolean;
 }

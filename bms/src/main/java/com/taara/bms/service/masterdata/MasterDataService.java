@@ -19,6 +19,7 @@ import com.taara.bms.repo.inhouse.InHouseStockSplitRepository;
 import com.taara.bms.repo.masterdata.DiaRepository;
 import com.taara.bms.repo.masterdata.StitchingSectionRepository;
 import com.taara.bms.repo.masterdata.StyleRepository;
+import com.taara.bms.repo.printing.PrintingOrderRepository;
 import com.taara.bms.repo.spinning.SpinningDeliveryRepository;
 import com.taara.bms.repo.spinning.SpinningOrderRepository;
 import com.taara.bms.repo.stitching.StitchingOrderRepository;
@@ -51,6 +52,7 @@ public class MasterDataService {
     private final InHouseStockSplitRepository inHouseStockSplitRepository;
     private final CuttingEntryRepository cuttingEntryRepository;
     private final StitchingOrderRepository stitchingOrderRepository;
+    private final PrintingOrderRepository printingOrderRepository;
     private final AutoIdService autoIdService;
     private final MasterDataMapper mapper;
 
@@ -65,6 +67,7 @@ public class MasterDataService {
             InHouseStockSplitRepository inHouseStockSplitRepository,
             CuttingEntryRepository cuttingEntryRepository,
             StitchingOrderRepository stitchingOrderRepository,
+            PrintingOrderRepository printingOrderRepository,
             AutoIdService autoIdService,
             MasterDataMapper mapper
     ) {
@@ -78,6 +81,7 @@ public class MasterDataService {
         this.inHouseStockSplitRepository = inHouseStockSplitRepository;
         this.cuttingEntryRepository = cuttingEntryRepository;
         this.stitchingOrderRepository = stitchingOrderRepository;
+        this.printingOrderRepository = printingOrderRepository;
         this.autoIdService = autoIdService;
         this.mapper = mapper;
     }
@@ -193,7 +197,7 @@ public class MasterDataService {
     public void deleteDia(String autoId) {
         log.info("Deleting dia '{}'", autoId);
         Dia dia = getDiaEntity(autoId);
-        if (inHouseStockSplitRepository.existsByDia_IdAndIsDeletedFalse(dia.getId()) || cuttingEntryRepository.existsByDia_IdAndIsDeletedFalse(dia.getId())) {
+        if (inHouseStockSplitRepository.existsByDia_IdAndIsDeletedFalse(dia.getId()) || cuttingEntryRepository.existsActiveByRowDiaId(dia.getId())) {
             throw new DeleteConflictException("DIA_IN_USE", "Dia cannot be deleted because it is referenced by active transactions", Map.of("diaAutoId", dia.getAutoId()));
         }
         dia.setDeleted(true);
@@ -211,6 +215,7 @@ public class MasterDataService {
         section.setAutoId(autoIdService.next(AutoIdSequence.STITCHING_SECTION));
         section.setSectionName(request.sectionName().trim());
         section.setType(request.type());
+        section.setProcessType(request.processType());
         StitchingSectionResponse response = mapper.toSectionResponse(stitchingSectionRepository.save(section));
         log.info("Created stitching section '{}'", response.autoId());
         return response;
@@ -225,6 +230,7 @@ public class MasterDataService {
         }
         section.setSectionName(request.sectionName().trim());
         section.setType(request.type());
+        section.setProcessType(request.processType());
         StitchingSectionResponse response = mapper.toSectionResponse(stitchingSectionRepository.save(section));
         log.info("Updated stitching section '{}'", response.autoId());
         return response;
@@ -234,7 +240,8 @@ public class MasterDataService {
     public void deleteSection(String autoId) {
         log.info("Deleting stitching section '{}'", autoId);
         StitchingSection section = getSectionEntity(autoId);
-        if (stitchingOrderRepository.existsByStitchingSection_IdAndIsDeletedFalse(section.getId())) {
+        if (stitchingOrderRepository.existsActiveByRowSectionId(section.getId())
+                || printingOrderRepository.existsByPrintingSection_IdAndIsDeletedFalse(section.getId())) {
             throw new DeleteConflictException("SECTION_IN_USE", "Section cannot be deleted because it has active stitching orders", Map.of("sectionAutoId", section.getAutoId()));
         }
         section.setDeleted(true);
@@ -244,7 +251,7 @@ public class MasterDataService {
 
     private void applyStyle(Style style, StyleUpsertRequest request) {
         style.setStyleName(request.styleName().trim());
-        style.setColors(request.colors().stream().map(String::trim).filter(color -> !color.isBlank()).toList());
+        style.setColors(request.colors() == null ? java.util.List.of() : request.colors().stream().map(String::trim).filter(color -> !color.isBlank()).toList());
     }
 
     private boolean isStyleReferenced(java.util.UUID styleId) {
@@ -253,8 +260,9 @@ public class MasterDataService {
                 || spinningDeliveryRepository.existsByStyle_IdAndIsDeletedFalse(styleId)
                 || inHouseDeliveryRepository.existsByStyle_IdAndIsDeletedFalse(styleId)
                 || inHouseStockSplitRepository.existsByStyle_IdAndIsDeletedFalse(styleId)
-                || cuttingEntryRepository.existsByStyle_IdAndIsDeletedFalse(styleId)
-                || stitchingOrderRepository.existsByStyle_IdAndIsDeletedFalse(styleId);
+                || cuttingEntryRepository.existsActiveByRowStyleId(styleId)
+                || stitchingOrderRepository.existsActiveByRowStyleId(styleId)
+                || printingOrderRepository.existsByStyle_IdAndIsDeletedFalse(styleId);
         log.debug("Style reference check for styleId={} returned {}", styleId, referenced);
         return referenced;
     }

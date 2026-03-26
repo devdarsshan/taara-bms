@@ -593,6 +593,44 @@ a {
   gap: 0.5rem;
 }
 
+.ops-line-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ops-inline-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.ops-inline-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ops-inline-grid--six {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.ops-inline-grid--seven {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.ops-inline-form .p-select,
+.ops-inline-form .p-inputnumber,
+.ops-inline-form .p-datepicker,
+.ops-inline-form .p-inputtext,
+.ops-inline-form .p-button {
+  width: 100%;
+}
+
+.ops-page .p-tabview-panel > .ops-panel,
+.ops-page .p-tabview-panel > .ops-page {
+  margin-top: 0.2rem;
+}
+
 .ops-danger-button.p-button:disabled {
   opacity: 0.55;
 }
@@ -618,7 +656,15 @@ a {
 
   .ops-dialog-actions,
   .ops-toolbar-actions,
-  .ops-toolbar-filters {
+  .ops-toolbar-filters,
+  .ops-inline-form {
     width: 100%;
+  }
+
+  .ops-inline-form,
+  .ops-inline-grid,
+  .ops-inline-grid--six,
+  .ops-inline-grid--seven {
+    grid-template-columns: 1fr;
   }
 }

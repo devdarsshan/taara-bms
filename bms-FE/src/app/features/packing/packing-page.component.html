@@ -1,0 +1,94 @@
+<section class="ops-page">
+  <section class="ops-summary-grid">
+    @for (card of summaryCards(); track card.title) {
+      <article [class]="'ops-summary-card ops-summary-card--' + card.tone">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">{{ card.title }}</span>
+          <div class="ops-summary-icon"><i [class]="card.icon"></i></div>
+        </div>
+        <strong class="ops-summary-value">{{ card.value }}</strong>
+        <p>{{ card.note }}</p>
+      </article>
+    }
+  </section>
+
+  <section class="ops-panel">
+    <div class="ops-panel-header">
+      <div><p class="ops-eyebrow">Pack Flow</p><h2>Packing entries</h2></div>
+      <span class="ops-muted">{{ entries().length }} active records</span>
+    </div>
+    <div class="ops-toolbar">
+      <div class="ops-toolbar-filters"></div>
+      <div class="ops-toolbar-actions">
+        <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedEntries().length" (click)="confirmDeleteEntries()"></button>
+        <button pButton label="Add Pack Entry" icon="pi pi-plus" (click)="openCreate()"></button>
+      </div>
+    </div>
+    <p-table
+      [value]="entries()"
+      [loading]="loading()"
+      dataKey="autoId"
+      responsiveLayout="scroll"
+      [tableStyle]="{ 'min-width': '66rem' }"
+      [stripedRows]="true"
+      [selection]="selectedEntries()"
+      (selectionChange)="selectedEntries.set($event)"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+          <th>Id</th>
+          <th>Date</th>
+          <th>Style</th>
+          <th>Size</th>
+          <th>Source</th>
+          <th>Packed</th>
+          <th>Defective</th>
+          <th>Total Consumed</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-record>
+        <tr (click)="openDetail(record)">
+          <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
+          <td class="ops-table-id">{{ record.autoId }}</td>
+          <td>{{ record.packingDate | date: 'dd MMM yyyy' }}</td>
+          <td>{{ record.style.styleName }}</td>
+          <td>{{ record.size }}</td>
+          <td>{{ record.stockType }}</td>
+          <td>{{ record.correctlyPackedPieces }}</td>
+          <td>{{ record.defectivePieces }}</td>
+          <td>{{ record.totalConsumedPieces }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</section>
+
+<p-dialog [visible]="dialogVisible()" [modal]="true" [style]="{ width: '44rem', maxWidth: '95vw' }" header="Create Packing Entry" (visibleChange)="dialogVisible.set($event)">
+  <form [formGroup]="form" class="ops-form-grid">
+    <div class="ops-form-field"><label>Packing date <span class="app-required">*</span></label><p-datePicker formControlName="packingDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="refreshAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" (onChange)="refreshAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Stock type <span class="app-required">*</span></label><p-select [options]="stockTypeOptions" formControlName="stockType" optionLabel="label" optionValue="value" placeholder="Stock Type" (onChange)="refreshAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Available pcs</label><p-inputNumber formControlName="availablePieces" [readonly]="true"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Correctly packed <span class="app-required">*</span></label><p-inputNumber formControlName="correctlyPackedPieces"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Defective pieces <span class="app-required">*</span></label><p-inputNumber formControlName="defectivePieces"></p-inputNumber></div>
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Save Entry" (click)="save()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog [visible]="detailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Packing Entry Details" (visibleChange)="detailVisible.set($event)">
+  @if (detail(); as record) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Packing date</span><span>{{ record.packingDate | date: 'dd MMM yyyy' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.styleName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Size</span><span>{{ record.size }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Source</span><span>{{ record.stockType }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Packed</span><span>{{ record.correctlyPackedPieces }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Defective</span><span>{{ record.defectivePieces }}</span></div></div>
+      <div class="ops-detail-card ops-detail-card--full"><div class="ops-detail-row"><span>Total consumed</span><span>{{ record.totalConsumedPieces }}</span></div></div>
+    </div>
+  }
+</p-dialog>

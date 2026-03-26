@@ -135,12 +135,64 @@
 }
 
 .shell__theme {
-  margin-top: auto;
   padding: 1.2rem;
   border: 1px solid var(--app-border);
   border-radius: 1.4rem;
   background: linear-gradient(180deg, var(--app-surface-highlight), var(--app-surface-elevated));
   box-shadow: var(--app-shadow-soft);
+}
+
+.shell__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 1.3rem;
+  background: linear-gradient(180deg, var(--app-surface-highlight), var(--app-surface-elevated));
+  box-shadow: var(--app-shadow-soft);
+  text-align: left;
+}
+
+.shell__account--clickable {
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.shell__account--clickable:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-accent-outline);
+  box-shadow: 0 18px 34px -26px color-mix(in srgb, var(--app-accent-shadow) 36%, transparent);
+}
+
+.shell__account-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.shell__account-copy strong {
+  color: var(--app-text-strong);
+  font-size: 0.94rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__account-copy small {
+  color: var(--app-muted);
+  font-size: 0.78rem;
+}
+
+.shell__account-manage {
+  color: var(--app-accent);
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .shell__theme-copy {

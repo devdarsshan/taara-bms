@@ -25,7 +25,7 @@ public class InHouseStockSplit extends BaseEntity {
     private String autoId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "inhouse_delivery_id", nullable = false)
+    @JoinColumn(name = "delivery_id", nullable = false)
     private InHouseDelivery delivery;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

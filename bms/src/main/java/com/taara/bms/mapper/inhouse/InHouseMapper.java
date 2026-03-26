@@ -1,9 +1,11 @@
 package com.taara.bms.mapper.inhouse;
 
+import com.taara.bms.dto.inhouse.CuttingRowResponse;
 import com.taara.bms.dto.inhouse.CuttingResponse;
 import com.taara.bms.dto.inhouse.InHouseDeliveryResponse;
 import com.taara.bms.dto.inhouse.InHouseStockSplitResponse;
 import com.taara.bms.entity.inhouse.CuttingEntry;
+import com.taara.bms.entity.inhouse.CuttingEntryRow;
 import com.taara.bms.entity.inhouse.InHouseDelivery;
 import com.taara.bms.entity.inhouse.InHouseStockSplit;
 import com.taara.bms.mapper.common.ReferenceMapper;
@@ -57,15 +59,26 @@ public class InHouseMapper {
                 cuttingEntry.getId(),
                 cuttingEntry.getAutoId(),
                 cuttingEntry.getCuttingDate(),
-                referenceMapper.toDiaRef(cuttingEntry.getDia()),
-                referenceMapper.toStyleRef(cuttingEntry.getStyle()),
-                cuttingEntry.getQuantityUsedKgs(),
-                cuttingEntry.getOutputPieces(),
+                cuttingEntry.getTotalQuantityUsedKgs(),
+                cuttingEntry.getTotalOutputPieces(),
+                cuttingEntry.getPcsPerKg(),
                 cuttingEntry.getStatus(),
                 cuttingEntry.getNotes(),
+                cuttingEntry.getRows().stream().map(this::toCuttingRowResponse).toList(),
                 cuttingEntry.isDeleted(),
                 cuttingEntry.getCreatedAt(),
                 cuttingEntry.getUpdatedAt()
+        );
+    }
+
+    public CuttingRowResponse toCuttingRowResponse(CuttingEntryRow row) {
+        return new CuttingRowResponse(
+                row.getId(),
+                referenceMapper.toDiaRef(row.getDia()),
+                referenceMapper.toStyleRef(row.getStyle()),
+                row.getSize(),
+                row.getQuantityUsedKgs(),
+                row.getOutputPieces()
         );
     }
 }

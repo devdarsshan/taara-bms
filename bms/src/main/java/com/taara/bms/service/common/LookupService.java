@@ -6,6 +6,9 @@ import com.taara.bms.entity.inhouse.InHouseStockSplit;
 import com.taara.bms.entity.masterdata.Dia;
 import com.taara.bms.entity.masterdata.StitchingSection;
 import com.taara.bms.entity.masterdata.Style;
+import com.taara.bms.entity.packing.PackingEntry;
+import com.taara.bms.entity.printing.PrintingDelivery;
+import com.taara.bms.entity.printing.PrintingOrder;
 import com.taara.bms.entity.spinning.SpinningDelivery;
 import com.taara.bms.entity.spinning.SpinningOrder;
 import com.taara.bms.entity.stitching.StitchingDelivery;
@@ -18,6 +21,9 @@ import com.taara.bms.repo.inhouse.InHouseStockSplitRepository;
 import com.taara.bms.repo.masterdata.DiaRepository;
 import com.taara.bms.repo.masterdata.StitchingSectionRepository;
 import com.taara.bms.repo.masterdata.StyleRepository;
+import com.taara.bms.repo.packing.PackingEntryRepository;
+import com.taara.bms.repo.printing.PrintingDeliveryRepository;
+import com.taara.bms.repo.printing.PrintingOrderRepository;
 import com.taara.bms.repo.spinning.SpinningDeliveryRepository;
 import com.taara.bms.repo.spinning.SpinningOrderRepository;
 import com.taara.bms.repo.stitching.StitchingDeliveryRepository;
@@ -39,6 +45,9 @@ public class LookupService {
     private final CuttingEntryRepository cuttingEntryRepository;
     private final StitchingOrderRepository stitchingOrderRepository;
     private final StitchingDeliveryRepository stitchingDeliveryRepository;
+    private final PrintingOrderRepository printingOrderRepository;
+    private final PrintingDeliveryRepository printingDeliveryRepository;
+    private final PackingEntryRepository packingEntryRepository;
 
     public LookupService(
             StyleRepository styleRepository,
@@ -51,7 +60,10 @@ public class LookupService {
             InHouseStockSplitRepository inHouseStockSplitRepository,
             CuttingEntryRepository cuttingEntryRepository,
             StitchingOrderRepository stitchingOrderRepository,
-            StitchingDeliveryRepository stitchingDeliveryRepository
+            StitchingDeliveryRepository stitchingDeliveryRepository,
+            PrintingOrderRepository printingOrderRepository,
+            PrintingDeliveryRepository printingDeliveryRepository,
+            PackingEntryRepository packingEntryRepository
     ) {
         this.styleRepository = styleRepository;
         this.diaRepository = diaRepository;
@@ -64,6 +76,9 @@ public class LookupService {
         this.cuttingEntryRepository = cuttingEntryRepository;
         this.stitchingOrderRepository = stitchingOrderRepository;
         this.stitchingDeliveryRepository = stitchingDeliveryRepository;
+        this.printingOrderRepository = printingOrderRepository;
+        this.printingDeliveryRepository = printingDeliveryRepository;
+        this.packingEntryRepository = packingEntryRepository;
     }
 
     public Style getActiveStyleByAutoId(String autoId) {
@@ -163,6 +178,33 @@ public class LookupService {
             throw new ResourceNotFoundException("STITCHING_DELIVERY_NOT_FOUND", "Stitching delivery not found");
         }
         return stitchingDelivery;
+    }
+
+    public PrintingOrder getActivePrintingOrderByAutoId(String autoId) {
+        PrintingOrder printingOrder = printingOrderRepository.findByAutoIdIgnoreCase(normalize(autoId))
+                .orElseThrow(() -> new ResourceNotFoundException("PRINTING_ORDER_NOT_FOUND", "Printing order not found"));
+        if (printingOrder.isDeleted()) {
+            throw new ResourceNotFoundException("PRINTING_ORDER_NOT_FOUND", "Printing order not found");
+        }
+        return printingOrder;
+    }
+
+    public PrintingDelivery getActivePrintingDeliveryByAutoId(String autoId) {
+        PrintingDelivery printingDelivery = printingDeliveryRepository.findByAutoIdIgnoreCase(normalize(autoId))
+                .orElseThrow(() -> new ResourceNotFoundException("PRINTING_DELIVERY_NOT_FOUND", "Printing delivery not found"));
+        if (printingDelivery.isDeleted()) {
+            throw new ResourceNotFoundException("PRINTING_DELIVERY_NOT_FOUND", "Printing delivery not found");
+        }
+        return printingDelivery;
+    }
+
+    public PackingEntry getActivePackingEntryByAutoId(String autoId) {
+        PackingEntry packingEntry = packingEntryRepository.findByAutoIdIgnoreCase(normalize(autoId))
+                .orElseThrow(() -> new ResourceNotFoundException("PACKING_NOT_FOUND", "Packing entry not found"));
+        if (packingEntry.isDeleted()) {
+            throw new ResourceNotFoundException("PACKING_NOT_FOUND", "Packing entry not found");
+        }
+        return packingEntry;
     }
 
     private String normalize(String autoId) {

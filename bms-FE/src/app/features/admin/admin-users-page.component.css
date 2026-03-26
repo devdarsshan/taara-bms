@@ -1,0 +1,6 @@
+.admin-kpi-email {
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  line-height: 1.25;
+  word-break: break-word;
+  letter-spacing: -0.04em;
+}

@@ -40,6 +40,7 @@ public class MasterDataMapper {
                 section.getAutoId(),
                 section.getSectionName(),
                 section.getType(),
+                section.getProcessType(),
                 section.isDeleted(),
                 section.getCreatedAt(),
                 section.getUpdatedAt()

@@ -133,7 +133,7 @@ export class SpinningPageComponent {
     }
 
     return [
-      { title: 'Dispatched', value: `${this.formatNumber(dashboard.totalDispatchedToSpinning)} kg`, note: 'Quantity sent to spinning.', icon: 'pi pi-arrow-right-arrow-left', tone: 'ocean' },
+      { title: 'Dispatched', value: `${this.formatNumber(dashboard.totalDispatchedToSpinning)} kg`, note: 'Quantity sent to knitting.', icon: 'pi pi-arrow-right-arrow-left', tone: 'ocean' },
       { title: 'Received', value: `${this.formatNumber(dashboard.totalReceivedFromSpinning)} kg`, note: 'Quantity received from deliveries.', icon: 'pi pi-download', tone: 'teal' },
       { title: 'Pending', value: `${this.formatNumber(dashboard.netPendingAtFactory)} kg`, note: 'Net quantity still pending at factory.', icon: 'pi pi-sync', tone: 'indigo' }
     ];
@@ -161,7 +161,7 @@ export class SpinningPageComponent {
         this.deliveries.set(deliveries.content);
         this.totalDeliveries.set(deliveries.totalElements);
       },
-      error: (error) => this.notificationService.error('Unable to load spinning workspace', getApiErrorMessage(error))
+      error: (error) => this.notificationService.error('Unable to load knitting workspace', getApiErrorMessage(error))
     });
   }
 
@@ -189,19 +189,19 @@ export class SpinningPageComponent {
 
   createOrder(): void {
     if (this.createOrderForm.pristine) {
-      this.notificationService.warn('No changes available to save', 'Update the spinning order form before saving.');
+      this.notificationService.warn('No changes available to save', 'Update the knitting order form before saving.');
       return;
     }
 
     if (this.createOrderForm.invalid) {
       this.createOrderForm.markAllAsTouched();
-      this.notificationService.warn('Spinning order not saved', 'Complete the required order fields before saving.');
+      this.notificationService.warn('Knitting order not saved', 'Complete the required order fields before saving.');
       return;
     }
 
     const value = this.createOrderForm.getRawValue();
     if (!value.dispatchDate || !value.styleAutoId || !value.quantitySentKgs) {
-      this.notificationService.warn('Spinning order not saved', 'Dispatch date, style, and quantity are required.');
+      this.notificationService.warn('Knitting order not saved', 'Dispatch date, style, and quantity are required.');
       return;
     }
 
@@ -216,33 +216,33 @@ export class SpinningPageComponent {
       next: () => {
         this.orderSubmitting.set(false);
         this.orderCreateVisible.set(false);
-        this.notificationService.success('Spinning order created', 'The spinning order has been saved.');
+        this.notificationService.success('Knitting order created', 'The knitting order has been saved.');
         this.reloadOrders();
       },
       error: (error) => {
         this.orderSubmitting.set(false);
         const message = getApiErrorMessage(error);
         this.orderError.set(message);
-        this.notificationService.error('Unable to create spinning order', message);
+        this.notificationService.error('Unable to create knitting order', message);
       }
     });
   }
 
   createDelivery(): void {
     if (this.createDeliveryForm.pristine) {
-      this.notificationService.warn('No changes available to save', 'Update the spinning delivery form before saving.');
+      this.notificationService.warn('No changes available to save', 'Update the knitting delivery form before saving.');
       return;
     }
 
     if (this.createDeliveryForm.invalid) {
       this.createDeliveryForm.markAllAsTouched();
-      this.notificationService.warn('Spinning delivery not saved', 'Complete the required delivery fields before saving.');
+      this.notificationService.warn('Knitting delivery not saved', 'Complete the required delivery fields before saving.');
       return;
     }
 
     const value = this.createDeliveryForm.getRawValue();
     if (!value.deliveryDate || !value.styleAutoId || !value.actualQuantityKgs) {
-      this.notificationService.warn('Spinning delivery not saved', 'Delivery date, style, and actual quantity are required.');
+      this.notificationService.warn('Knitting delivery not saved', 'Delivery date, style, and actual quantity are required.');
       return;
     }
 
@@ -257,43 +257,43 @@ export class SpinningPageComponent {
       next: () => {
         this.deliverySubmitting.set(false);
         this.deliveryCreateVisible.set(false);
-        this.notificationService.success('Spinning delivery created', 'The spinning delivery has been saved.');
+        this.notificationService.success('Knitting delivery created', 'The knitting delivery has been saved.');
         this.reloadDeliveries();
       },
       error: (error) => {
         this.deliverySubmitting.set(false);
         const message = getApiErrorMessage(error);
         this.deliveryError.set(message);
-        this.notificationService.error('Unable to create spinning delivery', message);
+        this.notificationService.error('Unable to create knitting delivery', message);
       }
     });
   }
 
   confirmDeleteOrders(): void {
     this.confirmDelete(
-      'Delete spinning orders',
+      'Delete knitting orders',
       this.selectedOrders(),
       (record) => this.spinningApi.deleteOrder(record.autoId),
       () => {
         this.selectedOrders.set([]);
-        this.notificationService.success('Spinning orders deleted', 'Selected spinning orders were moved out of the active list.');
+        this.notificationService.success('Knitting orders deleted', 'Selected knitting orders were moved out of the active list.');
         this.reloadOrders();
       },
-      'Unable to delete spinning orders'
+      'Unable to delete knitting orders'
     );
   }
 
   confirmDeleteDeliveries(): void {
     this.confirmDelete(
-      'Delete spinning deliveries',
+      'Delete knitting deliveries',
       this.selectedDeliveries(),
       (record) => this.spinningApi.deleteDelivery(record.autoId),
       () => {
         this.selectedDeliveries.set([]);
-        this.notificationService.success('Spinning deliveries deleted', 'Selected spinning deliveries were moved out of the active list.');
+        this.notificationService.success('Knitting deliveries deleted', 'Selected knitting deliveries were moved out of the active list.');
         this.reloadDeliveries();
       },
-      'Unable to delete spinning deliveries'
+      'Unable to delete knitting deliveries'
     );
   }
 
@@ -310,7 +310,7 @@ export class SpinningPageComponent {
   closeOrderCreateDialog(): void {
     if (this.createOrderForm.dirty) {
       this.confirmationService.confirm({
-        header: 'Discard spinning order changes',
+        header: 'Discard knitting order changes',
         message: 'You have unsaved changes. Do you want to close this form?',
         acceptLabel: 'Discard',
         rejectLabel: 'Keep editing',
@@ -327,7 +327,7 @@ export class SpinningPageComponent {
   closeDeliveryCreateDialog(): void {
     if (this.createDeliveryForm.dirty) {
       this.confirmationService.confirm({
-        header: 'Discard spinning delivery changes',
+        header: 'Discard knitting delivery changes',
         message: 'You have unsaved changes. Do you want to close this form?',
         acceptLabel: 'Discard',
         rejectLabel: 'Keep editing',
@@ -391,7 +391,7 @@ export class SpinningPageComponent {
         },
         error: (error) => {
           this.loadingOrders.set(false);
-          this.notificationService.error('Unable to refresh spinning orders', getApiErrorMessage(error));
+          this.notificationService.error('Unable to refresh knitting orders', getApiErrorMessage(error));
         }
       });
   }
@@ -409,7 +409,7 @@ export class SpinningPageComponent {
         },
         error: (error) => {
           this.loadingDeliveries.set(false);
-          this.notificationService.error('Unable to refresh spinning deliveries', getApiErrorMessage(error));
+          this.notificationService.error('Unable to refresh knitting deliveries', getApiErrorMessage(error));
         }
       });
   }

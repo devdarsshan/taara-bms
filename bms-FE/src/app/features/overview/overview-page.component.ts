@@ -60,15 +60,15 @@ export class OverviewPageComponent {
         label: 'Yarn Ordered',
         value: `${this.formatNumber(data.yarn.totalYarnOrdered)} kg`,
         eyebrow: 'Supply intake',
-        note: `${this.formatNumber(data.yarn.yarnDispatchedToSpinning)} kg dispatched to spinning`,
+        note: `${this.formatNumber(data.yarn.yarnDispatchedToSpinning)} kg dispatched to knitting`,
         tone: 'ocean',
         icon: 'pi pi-box'
       },
       {
         label: 'Factory Pending',
         value: `${this.formatNumber(data.spinning.netPendingAtFactory)} kg`,
-        eyebrow: 'Spinning floor',
-        note: `${this.formatNumber(data.spinning.totalReceivedFromSpinning)} kg received from spinning`,
+        eyebrow: 'Knitting floor',
+        note: `${this.formatNumber(data.spinning.totalReceivedFromSpinning)} kg received from knitting`,
         tone: 'teal',
         icon: 'pi pi-sync'
       },
@@ -81,8 +81,8 @@ export class OverviewPageComponent {
         icon: 'pi pi-building'
       },
       {
-        label: 'Stitched Stock',
-        value: this.formatNumber(data.inHouse.stitchedStockTotal),
+        label: 'Stitched Plain Stock',
+        value: this.formatNumber(data.inHouse.stitchedPlainStockTotal),
         eyebrow: 'Ready output',
         note: `${this.formatNumber(data.inHouse.defectiveStockTotal)} defective pieces finalized`,
         tone: 'amber',
@@ -114,13 +114,13 @@ export class OverviewPageComponent {
         ]
       },
       {
-        title: 'Spinning',
+        title: 'Knitting',
         eyebrow: 'Factory movement',
         description: 'Order dispatch and factory receipt tracking.',
         route: '/spinning',
         tone: 'teal',
         icon: 'pi pi-sync',
-        primaryLabel: 'Pending at factory',
+        primaryLabel: 'Pending at knitting unit',
         primaryValue: `${this.formatNumber(data.spinning.netPendingAtFactory)} kg`,
         metrics: [
           { label: 'Dispatched', value: `${this.formatNumber(data.spinning.totalDispatchedToSpinning)} kg` },

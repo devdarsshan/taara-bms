@@ -4,6 +4,7 @@ import com.taara.bms.dto.common.ApiErrorResponse;
 import com.taara.bms.dto.common.WarningResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException ex) {
@@ -59,9 +62,16 @@ public class GlobalExceptionHandler {
             HttpStatus status,
             String code,
             String message,
-            Map<String, Object> details
+        Map<String, Object> details
     ) {
-        ApiErrorResponse body = new ApiErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), code, message, details);
+        ApiErrorResponse body = new ApiErrorResponse(
+                LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                status.value(),
+                status.getReasonPhrase(),
+                code,
+                message,
+                details
+        );
         return ResponseEntity.status(status).body(body);
     }
 }

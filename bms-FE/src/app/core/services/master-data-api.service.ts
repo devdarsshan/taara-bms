@@ -5,11 +5,12 @@ import {
   Dia,
   DiaUpsertRequest,
   MasterDashboardResponse,
+  Style,
   StitchingSection,
   StitchingSectionUpsertRequest,
-  Style,
   StyleUpsertRequest
 } from '../models/master-data.models';
+import { SectionProcessType } from '../models/common.models';
 import { ApiService } from './api.service';
 
 @Injectable({
@@ -78,14 +79,14 @@ export class MasterDataApiService {
     return this.api.get<PageResponse<StitchingSection>>('/master/stitching-sections', this.toPageParams(query));
   }
 
-  getSectionOptions() {
+  getSectionOptions(processType?: SectionProcessType) {
     return this.getSections({
       page: 0,
       size: 200,
       sortField: 'sectionName',
       sortDirection: 'asc',
       includeDeleted: false
-    }).pipe(map((page) => page.content));
+    }).pipe(map((page) => page.content.filter((section) => !processType || section.processType === processType)));
   }
 
   createSection(payload: StitchingSectionUpsertRequest) {

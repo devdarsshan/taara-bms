@@ -23,13 +23,14 @@ export interface Dia {
   updatedAt: string;
 }
 
-export type StitchingSectionType = 'INTERNAL' | 'EXTERNAL';
+import { SectionProcessType, StitchingSectionType } from './common.models';
 
 export interface StitchingSection {
   id: string;
   autoId: string;
   sectionName: string;
   type: StitchingSectionType;
+  processType: SectionProcessType;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -47,4 +48,5 @@ export interface DiaUpsertRequest {
 export interface StitchingSectionUpsertRequest {
   sectionName: string;
   type: StitchingSectionType;
+  processType: SectionProcessType;
 }

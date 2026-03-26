@@ -30,6 +30,6 @@ public class Style extends BaseEntity {
     private String styleName;
 
     @Convert(converter = StringListConverter.class)
-    @Column(name = "colors", nullable = false, columnDefinition = "text")
+    @Column(name = "colors", columnDefinition = "text")
     private List<String> colors = new ArrayList<>();
 }

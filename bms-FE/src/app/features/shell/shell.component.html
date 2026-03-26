@@ -35,6 +35,30 @@
       }
     </nav>
 
+    <button type="button" class="shell__account" [class.shell__account--clickable]="authService.isAdmin()" (click)="openAccountDetails()">
+      @if (!sidebarCollapsed()) {
+        <div class="shell__account-copy">
+          <p class="shell__eyebrow">Signed in</p>
+          <strong>{{ authService.currentUser()?.email }}</strong>
+          <small>{{ authService.currentUser()?.role }}</small>
+        </div>
+      } @else {
+        <span class="shell__nav-icon">
+          <i class="pi pi-user"></i>
+        </span>
+      }
+
+      @if (!sidebarCollapsed() && authService.isAdmin()) {
+        <span class="shell__account-manage">Manage</span>
+      }
+    </button>
+
+    @if (sidebarCollapsed()) {
+      <button pButton type="button" icon="pi pi-sign-out" [text]="true" (click)="logout()"></button>
+    } @else {
+      <button pButton type="button" icon="pi pi-sign-out" [text]="true" label="Logout" (click)="logout()"></button>
+    }
+
     <div class="shell__theme">
       @if (!sidebarCollapsed()) {
       <div class="shell__theme-copy">

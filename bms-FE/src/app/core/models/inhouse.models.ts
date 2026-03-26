@@ -1,4 +1,4 @@
-import { DiaRef, StyleRef } from './common.models';
+import { DiaRef, GarmentSize, StyleRef } from './common.models';
 
 export type SplitStatus = 'PENDING' | 'PARTIALLY_SPLIT' | 'FULLY_SPLIT';
 export type CuttingStatus = 'IN_PROGRESS' | 'COMPLETED';
@@ -8,7 +8,8 @@ export interface InHouseDashboardResponse {
   cuttingInProgressCount: number;
   totalPiecesCut: number;
   readyToStitchPieces: number;
-  stitchedStockTotal: number;
+  stitchedPlainStockTotal: number;
+  printedStockTotal: number;
   defectiveStockTotal: number;
 }
 
@@ -47,16 +48,25 @@ export interface InHouseStock {
   availableQuantityKgs: number;
 }
 
+export interface CuttingRow {
+  id?: string;
+  dia: DiaRef;
+  style: StyleRef;
+  size: GarmentSize;
+  quantityUsedKgs: number;
+  outputPieces: number | null;
+}
+
 export interface CuttingEntry {
   id: string;
   autoId: string;
   cuttingDate: string;
-  dia: DiaRef;
-  style: StyleRef;
-  quantityUsedKgs: number;
-  outputPieces: number | null;
+  totalQuantityUsedKgs: number;
+  totalOutputPieces: number;
+  pcsPerKg: number | null;
   status: CuttingStatus;
   notes: string | null;
+  rows: CuttingRow[];
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -64,8 +74,10 @@ export interface CuttingEntry {
 
 export interface StitchedStock {
   style: StyleRef;
+  size: GarmentSize;
+  plainPieces: number;
+  printedPieces: number;
   latestTransactionDate: string | null;
-  goodPieces: number;
   defectivePieces: number;
 }
 
@@ -76,17 +88,22 @@ export interface InHouseSplitBatchRequest {
   }>;
 }
 
-export interface CuttingCreateRequest {
-  cuttingDate: string;
+export interface CuttingRowRequest {
   diaAutoId: string;
   styleAutoId: string;
+  size: GarmentSize;
   quantityUsedKgs: number;
   outputPieces?: number | null;
+}
+
+export interface CuttingCreateRequest {
+  cuttingDate: string;
+  rows: CuttingRowRequest[];
   notes?: string | null;
 }
 
 export interface CuttingUpdateRequest {
-  outputPieces?: number | null;
+  rows: CuttingRowRequest[];
   notes?: string | null;
 }
 

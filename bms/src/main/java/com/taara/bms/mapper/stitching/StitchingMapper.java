@@ -1,9 +1,11 @@
 package com.taara.bms.mapper.stitching;
 
 import com.taara.bms.dto.stitching.StitchingDeliveryResponse;
+import com.taara.bms.dto.stitching.StitchingOrderRowResponse;
 import com.taara.bms.dto.stitching.StitchingOrderResponse;
 import com.taara.bms.entity.stitching.StitchingDelivery;
 import com.taara.bms.entity.stitching.StitchingOrder;
+import com.taara.bms.entity.stitching.StitchingOrderRow;
 import com.taara.bms.mapper.common.ReferenceMapper;
 import org.springframework.stereotype.Component;
 
@@ -17,18 +19,20 @@ public class StitchingMapper {
     }
 
     public StitchingOrderResponse toOrderResponse(StitchingOrder order, int deliveredPieces) {
-        int pendingPieces = Math.max(order.getPiecesOrdered() - deliveredPieces, 0);
+        int pendingPieces = Math.max(order.getExpectedPieces() - deliveredPieces, 0);
+        int totalPiecesTaken = order.getRows().stream().mapToInt(StitchingOrderRow::getPiecesTaken).sum();
         return new StitchingOrderResponse(
                 order.getId(),
                 order.getAutoId(),
                 order.getOrderDate(),
-                referenceMapper.toSectionRef(order.getStitchingSection()),
-                referenceMapper.toStyleRef(order.getStyle()),
-                order.getPiecesOrdered(),
+                order.getExpectedSize(),
+                order.getExpectedPieces(),
                 deliveredPieces,
                 pendingPieces,
+                totalPiecesTaken,
                 order.getStatus(),
                 order.getNotes(),
+                order.getRows().stream().map(this::toOrderRowResponse).toList(),
                 order.isDeleted(),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
@@ -40,14 +44,23 @@ public class StitchingMapper {
                 delivery.getId(),
                 delivery.getAutoId(),
                 delivery.getDeliveryDate(),
-                delivery.getStitchingOrder().getId(),
-                delivery.getStitchingOrder().getAutoId(),
-                referenceMapper.toSectionRef(delivery.getStitchingOrder().getStitchingSection()),
-                referenceMapper.toStyleRef(delivery.getStitchingOrder().getStyle()),
+                referenceMapper.toSectionRef(delivery.getStitchingSection()),
+                referenceMapper.toStyleRef(delivery.getStyle()),
+                delivery.getSize(),
                 delivery.getPiecesDelivered(),
                 delivery.isDeleted(),
                 delivery.getCreatedAt(),
                 delivery.getUpdatedAt()
+        );
+    }
+
+    public StitchingOrderRowResponse toOrderRowResponse(StitchingOrderRow row) {
+        return new StitchingOrderRowResponse(
+                row.getId(),
+                referenceMapper.toSectionRef(row.getStitchingSection()),
+                referenceMapper.toStyleRef(row.getStyle()),
+                row.getSize(),
+                row.getPiecesTaken()
         );
     }
 }

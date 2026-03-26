@@ -1,23 +1,22 @@
 package com.taara.bms.dto.inhouse;
 
-import com.taara.bms.dto.common.DiaRefResponse;
-import com.taara.bms.dto.common.StyleRefResponse;
 import com.taara.bms.enums.CuttingStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record CuttingResponse(
         UUID id,
         String autoId,
         LocalDate cuttingDate,
-        DiaRefResponse dia,
-        StyleRefResponse style,
-        BigDecimal quantityUsedKgs,
-        Integer outputPieces,
+        BigDecimal totalQuantityUsedKgs,
+        Integer totalOutputPieces,
+        BigDecimal pcsPerKg,
         CuttingStatus status,
         String notes,
+        List<CuttingRowResponse> rows,
         boolean isDeleted,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

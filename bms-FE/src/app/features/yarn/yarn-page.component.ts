@@ -107,14 +107,14 @@ export class YarnPageComponent {
       {
         title: 'In Order',
         value: `${this.formatNumber(dashboard.yarnInOrder)} kg`,
-        note: 'Quantity still open before spinning dispatch.',
+        note: 'Quantity still open before knitting dispatch.',
         icon: 'pi pi-clock',
         tone: 'teal'
       },
       {
         title: 'Dispatched',
         value: `${this.formatNumber(dashboard.yarnDispatchedToSpinning)} kg`,
-        note: 'Quantity already moved into spinning.',
+        note: 'Quantity already moved into knitting.',
         icon: 'pi pi-arrow-right-arrow-left',
         tone: 'indigo'
       }

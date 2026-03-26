@@ -1,6 +1,7 @@
 package com.taara.bms.repo.stitching;
 
 import com.taara.bms.entity.stitching.StitchingDelivery;
+import com.taara.bms.enums.GarmentSize;
 import java.util.UUID;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,13 +13,12 @@ public interface StitchingDeliveryRepository extends JpaRepository<StitchingDeli
 
     Optional<StitchingDelivery> findByAutoIdIgnoreCase(String autoId);
 
-    boolean existsByStitchingOrder_IdAndIsDeletedFalse(UUID orderId);
-
     @Query("""
-            select coalesce(sum(s.piecesDelivered), 0)
-            from StitchingDelivery s
-            where s.isDeleted = false
-              and s.stitchingOrder.id = :orderId
+            select coalesce(sum(d.piecesDelivered), 0)
+            from StitchingDelivery d
+            where d.isDeleted = false
+              and d.style.id = :styleId
+              and d.size = :size
             """)
-    Integer sumActivePiecesByOrder(@Param("orderId") UUID orderId);
+    Integer sumActiveDeliveredByStyleAndSize(@Param("styleId") UUID styleId, @Param("size") GarmentSize size);
 }

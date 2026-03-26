@@ -274,6 +274,7 @@
               <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
               <th pSortableColumn="sectionName">Section Name <p-sortIcon field="sectionName"></p-sortIcon></th>
               <th pSortableColumn="type">Type <p-sortIcon field="type"></p-sortIcon></th>
+              <th>Process</th>
               <th>Status</th>
               <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
             </tr>
@@ -287,6 +288,7 @@
               <td>
                 <p-tag [value]="section.type === 'INTERNAL' ? 'Internal' : 'External'" [severity]="section.type === 'INTERNAL' ? 'info' : 'warn'"></p-tag>
               </td>
+              <td>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</td>
               <td>
                 <p-tag
                   [value]="section.isDeleted ? 'Deleted' : 'Active'"
@@ -299,7 +301,7 @@
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="6" class="master-data__empty">No sections match the current filters.</td>
+              <td colspan="7" class="master-data__empty">No sections match the current filters.</td>
             </tr>
           </ng-template>
         </p-table>
@@ -332,10 +334,10 @@
 
     <div class="master-data__field">
       <div class="master-data__field-header">
-        <label>Colors <span class="app-required">*</span></label>
+        <label>Colors</label>
         <button pButton type="button" label="Add color" icon="pi pi-plus" severity="secondary" [text]="true" (click)="stylesCrud.createColorField()"></button>
       </div>
-      <small class="master-data__field-hint">Add at least one color before saving the style.</small>
+      <small class="master-data__field-hint">Optional color notes for the style.</small>
 
       <div formArrayName="colors" class="master-data__color-list">
         @for (colorControl of stylesCrud.colorControls; track $index) {
@@ -443,6 +445,13 @@
         <small class="master-data__field-error">{{ error }}</small>
       }
     </div>
+    <div class="master-data__field">
+      <label>Process <span class="app-required">*</span></label>
+      <p-selectButton [options]="sectionProcessOptions" formControlName="processType" optionLabel="label" optionValue="value" [class.app-control-invalid]="sectionsCrud.isInvalid(sectionsCrud.form.controls.processType)"></p-selectButton>
+      @if (sectionsCrud.getError(sectionsCrud.form.controls.processType); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
 
     <div class="master-data__dialog-actions">
       <button
@@ -516,6 +525,7 @@
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Name</span><span>{{ section.sectionName }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Type</span><span>{{ section.type === 'INTERNAL' ? 'Internal' : 'External' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Process</span><span>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ section.isDeleted ? 'Deleted' : 'Active' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Updated</span><span>{{ section.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span></div></div>
     </div>

@@ -1,18 +1,18 @@
 package com.taara.bms.entity.stitching;
 
 import com.taara.bms.entity.common.BaseEntity;
-import com.taara.bms.entity.masterdata.StitchingSection;
-import com.taara.bms.entity.masterdata.Style;
+import com.taara.bms.enums.GarmentSize;
 import com.taara.bms.enums.StitchingOrderStatus;
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,16 +30,12 @@ public class StitchingOrder extends BaseEntity {
     @Column(name = "order_date", nullable = false)
     private LocalDate orderDate;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "stitching_section_id", nullable = false)
-    private StitchingSection stitchingSection;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "expected_size", nullable = false, length = 10)
+    private GarmentSize expectedSize;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "style_id", nullable = false)
-    private Style style;
-
-    @Column(name = "pieces_ordered", nullable = false)
-    private Integer piecesOrdered;
+    @Column(name = "expected_pieces", nullable = false)
+    private Integer expectedPieces;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -47,4 +43,7 @@ public class StitchingOrder extends BaseEntity {
 
     @Column(columnDefinition = "text")
     private String notes;
+
+    @OneToMany(mappedBy = "stitchingOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StitchingOrderRow> rows = new ArrayList<>();
 }

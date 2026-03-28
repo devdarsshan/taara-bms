@@ -1,0 +1,51 @@
+<section class="auth-page">
+  <div class="auth-page__panel">
+    <div class="auth-page__hero">
+      <p class="ops-eyebrow">Taara BMS</p>
+      <h1>{{ pageTitle() }}</h1>
+      <p>{{ pageSubtitle() }}</p>
+
+      <div class="auth-page__switch">
+        <button pButton type="button" label="Login" [outlined]="mode() !== 'login'" (click)="switchMode('login')"></button>
+        <button pButton type="button" label="Signup" [outlined]="mode() !== 'signup'" (click)="switchMode('signup')"></button>
+      </div>
+    </div>
+
+    <p-card class="auth-page__card">
+      <form [formGroup]="form" class="ops-form-grid" (ngSubmit)="submit()">
+        <div class="ops-form-field ops-form-field--full">
+          <label>Email <span class="app-required">*</span></label>
+          <input pInputText formControlName="email" type="email" [class.app-control-invalid]="isInvalid(form.controls.email)" />
+        </div>
+
+        <div class="ops-form-field ops-form-field--full">
+          <label>Password <span class="app-required">*</span></label>
+          <p-password formControlName="password" [toggleMask]="true" [feedback]="mode() === 'signup'" [inputStyleClass]="isInvalid(form.controls.password) ? 'app-control-invalid' : ''" styleClass="auth-page__password"></p-password>
+        </div>
+
+        @if (mode() === 'signup') {
+          <div class="ops-form-field ops-form-field--full">
+            <label>Confirm Password <span class="app-required">*</span></label>
+            <p-password formControlName="confirmPassword" [toggleMask]="true" [feedback]="false" styleClass="auth-page__password"></p-password>
+          </div>
+        }
+
+        <div class="ops-dialog-actions ops-form-field--full">
+          <button pButton type="submit" [label]="actionLabel()" [loading]="submitting()"></button>
+        </div>
+      </form>
+
+      <p-divider></p-divider>
+
+      <p class="auth-page__footer">
+        @if (mode() === 'login') {
+          Need an invited account first?
+          <a routerLink="/signup">Complete signup</a>
+        } @else {
+          Already active?
+          <a routerLink="/login">Go to login</a>
+        }
+      </p>
+    </p-card>
+  </div>
+</section>

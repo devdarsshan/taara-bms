@@ -1,0 +1,537 @@
+<div class="master-data">
+  <section class="master-data__summary-grid">
+    <article class="master-data__summary-card master-data__summary-card--styles">
+      <div class="master-data__summary-topline">
+        <span class="master-data__summary-eyebrow">Style catalog</span>
+        <i class="pi pi-palette"></i>
+      </div>
+      <strong>{{ dashboard()?.totalStyles ?? 0 }}</strong>
+      <p>Create and manage style names with color variants.</p>
+      <button pButton label="New style" icon="pi pi-plus" severity="secondary" [outlined]="true" (click)="stylesCrud.openDialog()"></button>
+    </article>
+
+    <article class="master-data__summary-card master-data__summary-card--dias">
+      <div class="master-data__summary-topline">
+        <span class="master-data__summary-eyebrow">Dia library</span>
+        <i class="pi pi-circle"></i>
+      </div>
+      <strong>{{ dashboard()?.totalDiaTypes ?? 0 }}</strong>
+      <p>Maintain usable dia values for in-house stock and cutting.</p>
+      <button pButton label="New dia" icon="pi pi-plus" severity="secondary" [outlined]="true" (click)="diasCrud.openDialog()"></button>
+    </article>
+
+    <article class="master-data__summary-card master-data__summary-card--sections">
+      <div class="master-data__summary-topline">
+        <span class="master-data__summary-eyebrow">Section setup</span>
+        <i class="pi pi-sitemap"></i>
+      </div>
+      <strong>{{ dashboard()?.totalStitchingSections ?? 0 }}</strong>
+      <p>Register internal and external stitching partners once.</p>
+      <button
+        pButton
+        label="New section"
+        icon="pi pi-plus"
+        severity="secondary"
+        [outlined]="true"
+        (click)="sectionsCrud.openDialog()"
+      ></button>
+    </article>
+  </section>
+
+  <p-tabView [activeIndex]="activeTab()" (activeIndexChange)="activeTab.set($event)">
+    <p-tabPanel header="Styles">
+      <p-card styleClass="master-data__panel-card">
+        <div class="master-data__toolbar">
+          <div class="master-data__toolbar-left">
+            <div class="master-data__toolbar-copy">
+              <span class="master-data__toolbar-title">Style records</span>
+              <small>{{ stylesCrud.listState.total() }} items</small>
+            </div>
+            <input
+              pInputText
+              [formControl]="stylesCrud.listState.searchControl"
+              type="text"
+              placeholder="Search by Id or style name"
+              class="master-data__search"
+            />
+          </div>
+
+          <div class="master-data__toolbar-actions">
+            <button
+              pButton
+              icon="pi pi-trash"
+              severity="danger"
+              [outlined]="true"
+              styleClass="master-data__icon-action"
+              [disabled]="!stylesCrud.selectedItems().length"
+              (click)="stylesCrud.confirmDeleteMany()"
+            ></button>
+            <button pButton label="Add Style" icon="pi pi-plus" styleClass="master-data__label-action" (click)="stylesCrud.openDialog()"></button>
+          </div>
+        </div>
+
+        <p-table
+          [value]="stylesCrud.listState.items()"
+          [lazy]="true"
+          [lazyLoadOnInit]="false"
+          [paginator]="true"
+          [rows]="stylesCrud.listState.query().size"
+          [first]="stylesCrud.listState.query().page * stylesCrud.listState.query().size"
+          [totalRecords]="stylesCrud.listState.total()"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [loading]="stylesCrud.listState.loading()"
+          [sortField]="stylesCrud.listState.query().sortField"
+          [sortOrder]="stylesCrud.listState.query().sortDirection === 'asc' ? 1 : -1"
+          [tableStyle]="{ 'min-width': '56rem' }"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} styles"
+          [showCurrentPageReport]="true"
+          [stripedRows]="true"
+          [selection]="stylesCrud.selectedItems()"
+          (selectionChange)="stylesCrud.selectedItems.set($event)"
+          (onLazyLoad)="stylesCrud.onLazyLoad($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
+              <th pSortableColumn="styleName">Style <p-sortIcon field="styleName"></p-sortIcon></th>
+              <th>Colors</th>
+              <th>Status</th>
+              <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-style>
+            <tr (click)="openStyleDetail(style)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="style"></p-tableCheckbox></td>
+              <td class="master-data__mono">{{ style.autoId }}</td>
+              <td>{{ style.styleName }}</td>
+              <td>
+                <div class="master-data__tag-list">
+                  @for (color of style.colors; track $index) {
+                    <p-tag [value]="color" severity="secondary"></p-tag>
+                  }
+                </div>
+              </td>
+              <td>
+                <p-tag [value]="style.isDeleted ? 'Deleted' : 'Active'" [severity]="style.isDeleted ? 'danger' : 'success'"></p-tag>
+              </td>
+              <td>{{ style.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="6" class="master-data__empty">No styles match the current filters.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </p-tabPanel>
+
+    <p-tabPanel header="Dias">
+      <p-card styleClass="master-data__panel-card">
+        <div class="master-data__toolbar">
+          <div class="master-data__toolbar-left">
+            <div class="master-data__toolbar-copy">
+              <span class="master-data__toolbar-title">Dia records</span>
+              <small>{{ diasCrud.listState.total() }} items</small>
+            </div>
+            <input
+              pInputText
+              [formControl]="diasCrud.listState.searchControl"
+              type="text"
+              placeholder="Search by Id or dia value"
+              class="master-data__search"
+            />
+          </div>
+
+          <div class="master-data__toolbar-actions">
+            <button
+              pButton
+              icon="pi pi-trash"
+              severity="danger"
+              [outlined]="true"
+              styleClass="master-data__icon-action"
+              [disabled]="!diasCrud.selectedItems().length"
+              (click)="diasCrud.confirmDeleteMany()"
+            ></button>
+            <button pButton label="Add Dia" icon="pi pi-plus" styleClass="master-data__label-action" (click)="diasCrud.openDialog()"></button>
+          </div>
+        </div>
+
+        <p-table
+          [value]="diasCrud.listState.items()"
+          [lazy]="true"
+          [lazyLoadOnInit]="false"
+          [paginator]="true"
+          [rows]="diasCrud.listState.query().size"
+          [first]="diasCrud.listState.query().page * diasCrud.listState.query().size"
+          [totalRecords]="diasCrud.listState.total()"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [loading]="diasCrud.listState.loading()"
+          [sortField]="diasCrud.listState.query().sortField"
+          [sortOrder]="diasCrud.listState.query().sortDirection === 'asc' ? 1 : -1"
+          [tableStyle]="{ 'min-width': '48rem' }"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} dia entries"
+          [showCurrentPageReport]="true"
+          [stripedRows]="true"
+          [selection]="diasCrud.selectedItems()"
+          (selectionChange)="diasCrud.selectedItems.set($event)"
+          (onLazyLoad)="diasCrud.onLazyLoad($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
+              <th pSortableColumn="diaValue">Dia Value <p-sortIcon field="diaValue"></p-sortIcon></th>
+              <th>Status</th>
+              <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-dia>
+            <tr (click)="openDiaDetail(dia)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="dia"></p-tableCheckbox></td>
+              <td class="master-data__mono">{{ dia.autoId }}</td>
+              <td>{{ dia.diaValue }}</td>
+              <td>
+                <p-tag [value]="dia.isDeleted ? 'Deleted' : 'Active'" [severity]="dia.isDeleted ? 'danger' : 'success'"></p-tag>
+              </td>
+              <td>{{ dia.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="master-data__empty">No dia values match the current filters.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </p-tabPanel>
+
+    <p-tabPanel header="Stitching Sections">
+      <p-card styleClass="master-data__panel-card">
+        <div class="master-data__toolbar">
+          <div class="master-data__toolbar-left">
+            <div class="master-data__toolbar-copy">
+              <span class="master-data__toolbar-title">Section records</span>
+              <small>{{ sectionsCrud.listState.total() }} items</small>
+            </div>
+            <input
+              pInputText
+              [formControl]="sectionsCrud.listState.searchControl"
+              type="text"
+              placeholder="Search by Id or section name"
+              class="master-data__search"
+            />
+          </div>
+
+          <div class="master-data__toolbar-actions">
+            <button
+              pButton
+              icon="pi pi-trash"
+              severity="danger"
+              [outlined]="true"
+              styleClass="master-data__icon-action"
+              [disabled]="!sectionsCrud.selectedItems().length"
+              (click)="sectionsCrud.confirmDeleteMany()"
+            ></button>
+            <button pButton label="Add Section" icon="pi pi-plus" styleClass="master-data__label-action" (click)="sectionsCrud.openDialog()"></button>
+          </div>
+        </div>
+
+        <p-table
+          [value]="sectionsCrud.listState.items()"
+          [lazy]="true"
+          [lazyLoadOnInit]="false"
+          [paginator]="true"
+          [rows]="sectionsCrud.listState.query().size"
+          [first]="sectionsCrud.listState.query().page * sectionsCrud.listState.query().size"
+          [totalRecords]="sectionsCrud.listState.total()"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [loading]="sectionsCrud.listState.loading()"
+          [sortField]="sectionsCrud.listState.query().sortField"
+          [sortOrder]="sectionsCrud.listState.query().sortDirection === 'asc' ? 1 : -1"
+          [tableStyle]="{ 'min-width': '52rem' }"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} sections"
+          [showCurrentPageReport]="true"
+          [stripedRows]="true"
+          [selection]="sectionsCrud.selectedItems()"
+          (selectionChange)="sectionsCrud.selectedItems.set($event)"
+          (onLazyLoad)="sectionsCrud.onLazyLoad($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
+              <th pSortableColumn="sectionName">Section Name <p-sortIcon field="sectionName"></p-sortIcon></th>
+              <th pSortableColumn="type">Type <p-sortIcon field="type"></p-sortIcon></th>
+              <th>Process</th>
+              <th>Status</th>
+              <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-section>
+            <tr (click)="openSectionDetail(section)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="section"></p-tableCheckbox></td>
+              <td class="master-data__mono">{{ section.autoId }}</td>
+              <td>{{ section.sectionName }}</td>
+              <td>
+                <p-tag [value]="section.type === 'INTERNAL' ? 'Internal' : 'External'" [severity]="section.type === 'INTERNAL' ? 'info' : 'warn'"></p-tag>
+              </td>
+              <td>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</td>
+              <td>
+                <p-tag
+                  [value]="section.isDeleted ? 'Deleted' : 'Active'"
+                  [severity]="section.isDeleted ? 'danger' : 'success'"
+                ></p-tag>
+              </td>
+              <td>{{ section.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7" class="master-data__empty">No sections match the current filters.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-card>
+    </p-tabPanel>
+  </p-tabView>
+</div>
+
+<p-dialog
+  [visible]="stylesCrud.dialogVisible()"
+  [modal]="true"
+  [closable]="!stylesCrud.submitting()"
+  [dismissableMask]="!stylesCrud.submitting()"
+  [style]="{ width: '38rem', maxWidth: '95vw' }"
+  [header]="stylesCrud.dialogTitle()"
+  (visibleChange)="stylesCrud.handleDialogVisibilityChange($event)"
+>
+  <form [formGroup]="stylesCrud.form" class="master-data__dialog-form" (ngSubmit)="stylesCrud.save()">
+    @if (stylesCrud.dialogError(); as error) {
+      <p-message severity="error" [text]="error"></p-message>
+    }
+
+    <div class="master-data__field">
+      <label for="styleName">Style name <span class="app-required">*</span></label>
+      <input id="styleName" pInputText formControlName="styleName" type="text" [class.app-control-invalid]="stylesCrud.isInvalid(stylesCrud.form.controls.styleName)" />
+      @if (stylesCrud.getError(stylesCrud.form.controls.styleName); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+
+    <div class="master-data__field">
+      <div class="master-data__field-header">
+        <label>Colors</label>
+        <button pButton type="button" label="Add color" icon="pi pi-plus" severity="secondary" [text]="true" (click)="stylesCrud.createColorField()"></button>
+      </div>
+      <small class="master-data__field-hint">Optional color notes for the style.</small>
+
+      <div formArrayName="colors" class="master-data__color-list">
+        @for (colorControl of stylesCrud.colorControls; track $index) {
+          <div class="master-data__color-row">
+            <input pInputText [formControlName]="$index" type="text" placeholder="Enter color" [class.app-control-invalid]="stylesCrud.isInvalid(colorControl)" />
+            <button
+              pButton
+              type="button"
+              icon="pi pi-times"
+              severity="danger"
+              [text]="true"
+              [disabled]="stylesCrud.colorControls.length === 1"
+              (click)="stylesCrud.removeColorField($index)"
+            ></button>
+          </div>
+          @if (stylesCrud.getError(colorControl); as error) {
+            <small class="master-data__field-error">{{ error }}</small>
+          }
+        }
+      </div>
+
+      @if (stylesCrud.getError(stylesCrud.form.controls.colors); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+
+    <div class="master-data__dialog-actions">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="stylesCrud.submitting()"
+        (click)="stylesCrud.attemptCloseDialog()"
+      ></button>
+      <button pButton type="button" label="Save style" [loading]="stylesCrud.submitting()" (click)="stylesCrud.save()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  [visible]="diasCrud.dialogVisible()"
+  [modal]="true"
+  [closable]="!diasCrud.submitting()"
+  [dismissableMask]="!diasCrud.submitting()"
+  [style]="{ width: '30rem', maxWidth: '95vw' }"
+  [header]="diasCrud.dialogTitle()"
+  (visibleChange)="diasCrud.handleDialogVisibilityChange($event)"
+>
+  <form [formGroup]="diasCrud.form" class="master-data__dialog-form" (ngSubmit)="diasCrud.save()">
+    @if (diasCrud.dialogError(); as error) {
+      <p-message severity="error" [text]="error"></p-message>
+    }
+
+    <div class="master-data__field">
+      <label for="diaValue">Dia value <span class="app-required">*</span></label>
+      <input id="diaValue" pInputText formControlName="diaValue" type="text" [class.app-control-invalid]="diasCrud.isInvalid(diasCrud.form.controls.diaValue)" />
+      @if (diasCrud.getError(diasCrud.form.controls.diaValue); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+
+    <div class="master-data__dialog-actions">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="diasCrud.submitting()"
+        (click)="diasCrud.attemptCloseDialog()"
+      ></button>
+      <button pButton type="button" label="Save dia" [loading]="diasCrud.submitting()" (click)="diasCrud.save()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  [visible]="sectionsCrud.dialogVisible()"
+  [modal]="true"
+  [closable]="!sectionsCrud.submitting()"
+  [dismissableMask]="!sectionsCrud.submitting()"
+  [style]="{ width: '34rem', maxWidth: '95vw' }"
+  [header]="sectionsCrud.dialogTitle()"
+  (visibleChange)="sectionsCrud.handleDialogVisibilityChange($event)"
+>
+  <form [formGroup]="sectionsCrud.form" class="master-data__dialog-form" (ngSubmit)="sectionsCrud.save()">
+    @if (sectionsCrud.dialogError(); as error) {
+      <p-message severity="error" [text]="error"></p-message>
+    }
+
+    <div class="master-data__field">
+      <label for="sectionName">Section name <span class="app-required">*</span></label>
+      <input id="sectionName" pInputText formControlName="sectionName" type="text" [class.app-control-invalid]="sectionsCrud.isInvalid(sectionsCrud.form.controls.sectionName)" />
+      @if (sectionsCrud.getError(sectionsCrud.form.controls.sectionName); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+
+    <div class="master-data__field">
+      <label>Section type <span class="app-required">*</span></label>
+      <p-selectButton [options]="sectionTypeOptions" formControlName="type" optionLabel="label" optionValue="value" [class.app-control-invalid]="sectionsCrud.isInvalid(sectionsCrud.form.controls.type)"></p-selectButton>
+      @if (sectionsCrud.getError(sectionsCrud.form.controls.type); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+    <div class="master-data__field">
+      <label>Process <span class="app-required">*</span></label>
+      <p-selectButton [options]="sectionProcessOptions" formControlName="processType" optionLabel="label" optionValue="value" [class.app-control-invalid]="sectionsCrud.isInvalid(sectionsCrud.form.controls.processType)"></p-selectButton>
+      @if (sectionsCrud.getError(sectionsCrud.form.controls.processType); as error) {
+        <small class="master-data__field-error">{{ error }}</small>
+      }
+    </div>
+
+    <div class="master-data__dialog-actions">
+      <button
+        pButton
+        type="button"
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        [disabled]="sectionsCrud.submitting()"
+        (click)="sectionsCrud.attemptCloseDialog()"
+      ></button>
+      <button pButton type="button" label="Save section" [loading]="sectionsCrud.submitting()" (click)="sectionsCrud.save()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog
+  [visible]="styleDetailVisible()"
+  [modal]="true"
+  [style]="{ width: '40rem', maxWidth: '95vw' }"
+  header="Style Detail"
+  (visibleChange)="styleDetailVisible.set($event)"
+>
+  @if (styleDetail(); as style) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ style.styleName }}</span></div></div>
+      <div class="ops-detail-card ops-detail-card--full">
+        <div class="ops-detail-row">
+          <span>Colors</span>
+          <span>{{ style.colors.join(', ') }}</span>
+        </div>
+      </div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ style.isDeleted ? 'Deleted' : 'Active' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Updated</span><span>{{ style.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span></div></div>
+    </div>
+    <div class="master-data__dialog-actions">
+      <button pButton type="button" label="Edit" severity="secondary" [outlined]="true" (click)="editStyleFromDetail()"></button>
+      <button pButton type="button" label="Delete" severity="danger" (click)="deleteStyleFromDetail()"></button>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  [visible]="diaDetailVisible()"
+  [modal]="true"
+  [style]="{ width: '34rem', maxWidth: '95vw' }"
+  header="Dia Detail"
+  (visibleChange)="diaDetailVisible.set($event)"
+>
+  @if (diaDetail(); as dia) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Dia Value</span><span>{{ dia.diaValue }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ dia.isDeleted ? 'Deleted' : 'Active' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Updated</span><span>{{ dia.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span></div></div>
+    </div>
+    <div class="master-data__dialog-actions">
+      <button pButton type="button" label="Edit" severity="secondary" [outlined]="true" (click)="editDiaFromDetail()"></button>
+      <button pButton type="button" label="Delete" severity="danger" (click)="deleteDiaFromDetail()"></button>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  [visible]="sectionDetailVisible()"
+  [modal]="true"
+  [style]="{ width: '38rem', maxWidth: '95vw' }"
+  header="Section Detail"
+  (visibleChange)="sectionDetailVisible.set($event)"
+>
+  @if (sectionDetail(); as section) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Name</span><span>{{ section.sectionName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Type</span><span>{{ section.type === 'INTERNAL' ? 'Internal' : 'External' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Process</span><span>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ section.isDeleted ? 'Deleted' : 'Active' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Updated</span><span>{{ section.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span></div></div>
+    </div>
+    <div class="master-data__dialog-actions">
+      <button pButton type="button" label="Edit" severity="secondary" [outlined]="true" (click)="editSectionFromDetail()"></button>
+      <button pButton type="button" label="Delete" severity="danger" (click)="deleteSectionFromDetail()"></button>
+    </div>
+  }
+</p-dialog>

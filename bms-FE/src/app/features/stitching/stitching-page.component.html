@@ -1,0 +1,222 @@
+<section class="ops-page">
+  <section class="ops-summary-grid">
+    @for (card of summaryCards(); track card.title) {
+      <article [class]="'ops-summary-card ops-summary-card--' + card.tone">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">{{ card.title }}</span>
+          <div class="ops-summary-icon"><i [class]="card.icon"></i></div>
+        </div>
+        <strong class="ops-summary-value">{{ card.value }}</strong>
+        <p>{{ card.note }}</p>
+      </article>
+    }
+  </section>
+
+  <p-tabView>
+    <p-tabPanel header="Orders">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Section Orders</p><h2>Stitching orders</h2></div>
+          <span class="ops-muted">{{ orders().length }} active records</span>
+        </div>
+        <div class="ops-toolbar">
+          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-actions">
+            <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedOrders().length" (click)="confirmDeleteOrders()"></button>
+            <button pButton label="Add Order" icon="pi pi-plus" (click)="openCreateOrder()"></button>
+          </div>
+        </div>
+        <p-table
+          [value]="orders()"
+          [loading]="loading()"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          [tableStyle]="{ 'min-width': '72rem' }"
+          [stripedRows]="true"
+          [selection]="selectedOrders()"
+          (selectionChange)="selectedOrders.set($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th>Id</th>
+              <th>Date</th>
+              <th>Expected Size</th>
+              <th>Expected Pcs</th>
+              <th>Delivered</th>
+              <th>Pending</th>
+              <th>Status</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr (click)="openOrderDetail(record)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
+              <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.expectedSize }}</td>
+              <td>{{ record.expectedPieces }}</td>
+              <td>{{ record.deliveredPieces }}</td>
+              <td>{{ record.pendingPieces }}</td>
+              <td><p-tag [severity]="severity(record.status)" [value]="record.status"></p-tag></td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Deliveries">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Returns</p><h2>Stitching deliveries</h2></div>
+          <span class="ops-muted">{{ deliveries().length }} active records</span>
+        </div>
+        <div class="ops-toolbar">
+          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-actions">
+            <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedDeliveries().length" (click)="confirmDeleteDeliveries()"></button>
+            <button pButton label="Add Delivery" icon="pi pi-plus" (click)="openCreateDelivery()"></button>
+          </div>
+        </div>
+        <p-table
+          [value]="deliveries()"
+          [loading]="loading()"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          [tableStyle]="{ 'min-width': '68rem' }"
+          [stripedRows]="true"
+          [selection]="selectedDeliveries()"
+          (selectionChange)="selectedDeliveries.set($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th>Id</th>
+              <th>Date</th>
+              <th>Section</th>
+              <th>Style</th>
+              <th>Size</th>
+              <th>Delivered</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr (click)="openDeliveryDetail(record)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
+              <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.stitchingSection.sectionName }}</td>
+              <td>{{ record.style.styleName }}</td>
+              <td>{{ record.size }}</td>
+              <td>{{ record.piecesDelivered }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+  </p-tabView>
+</section>
+
+<p-dialog [visible]="orderDialogVisible()" [modal]="true" [style]="{ width: '74rem', maxWidth: '96vw' }" header="Create Stitching Order" (visibleChange)="orderDialogVisible.set($event)">
+  <form [formGroup]="orderForm" class="ops-form-grid">
+    <div class="ops-form-field"><label>Order date <span class="app-required">*</span></label><p-datePicker formControlName="orderDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Expected size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="expectedSize" optionLabel="label" optionValue="value" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Expected pcs <span class="app-required">*</span></label><p-inputNumber formControlName="expectedPieces"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Notes</label><input pInputText formControlName="notes" /></div>
+
+    <div class="ops-form-field ops-form-field--full">
+      <label>Order rows <span class="app-required">*</span></label>
+      <div formArrayName="rows" class="ops-line-stack">
+        @for (row of orderRows.controls; track $index) {
+          <div class="ops-inline-form ops-inline-grid ops-inline-grid--six" [formGroupName]="$index">
+            <p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Section" appendTo="body"></p-select>
+            <p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="onOrderRowComboChange($index)" appendTo="body"></p-select>
+            <p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" (onChange)="onOrderRowComboChange($index)" appendTo="body"></p-select>
+            <p-inputNumber formControlName="availablePieces" [readonly]="true" placeholder="Available pcs"></p-inputNumber>
+            <p-inputNumber formControlName="piecesTaken" placeholder="Pieces taken"></p-inputNumber>
+            <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeOrderRow($index)"></button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="ops-form-field ops-form-field--full">
+      <div class="ops-inline-actions">
+        <button pButton type="button" label="Add Row" icon="pi pi-plus" severity="secondary" [text]="true" (click)="addOrderRow()"></button>
+      </div>
+    </div>
+
+    <div class="ops-detail-grid ops-form-field--full">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Pieces Taken</span><span>{{ totalTaken() }}</span></div></div>
+    </div>
+
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Save Order" (click)="saveOrder()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog [visible]="deliveryDialogVisible()" [modal]="true" [style]="{ width: '48rem', maxWidth: '96vw' }" header="Create Stitching Delivery" (visibleChange)="deliveryDialogVisible.set($event)">
+  <form [formGroup]="deliveryForm" class="ops-form-grid">
+    <div class="ops-form-field"><label>Delivery date <span class="app-required">*</span></label><p-datePicker formControlName="deliveryDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Section <span class="app-required">*</span></label><p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Section" (onChange)="refreshDeliveryAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="refreshDeliveryAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" (onChange)="refreshDeliveryAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Available pcs</label><p-inputNumber formControlName="availablePieces" [readonly]="true"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Pieces delivered <span class="app-required">*</span></label><p-inputNumber formControlName="piecesDelivered"></p-inputNumber></div>
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Save Delivery" (click)="saveDelivery()"></button>
+    </div>
+  </form>
+</p-dialog>
+
+<p-dialog [visible]="orderDetailVisible()" [modal]="true" [style]="{ width: '62rem', maxWidth: '96vw' }" header="Stitching Order Details" (visibleChange)="orderDetailVisible.set($event)">
+  @if (orderDetail(); as record) {
+    <div class="ops-page">
+      <div class="ops-detail-grid">
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Order date</span><span>{{ record.orderDate | date: 'dd MMM yyyy' }}</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Expected size</span><span>{{ record.expectedSize }}</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Expected pcs</span><span>{{ record.expectedPieces }}</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Pending pcs</span><span>{{ record.pendingPieces }}</span></div></div>
+      </div>
+
+      <p-table [value]="record.rows" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '48rem' }">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Section</th>
+            <th>Style</th>
+            <th>Size</th>
+            <th>Pieces Taken</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>{{ row.stitchingSection.sectionName }}</td>
+            <td>{{ row.style.styleName }}</td>
+            <td>{{ row.size }}</td>
+            <td>{{ row.piecesTaken }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <div class="ops-form-grid">
+        <div class="ops-form-field"><label>Status</label><p-select [options]="statusOptions" [formControl]="statusForm.controls.status" optionLabel="label" optionValue="value" appendTo="body"></p-select></div>
+      </div>
+
+      <div class="ops-dialog-actions">
+        <button pButton type="button" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="confirmDeleteOrder(record)"></button>
+        <button pButton type="button" label="Save Status" (click)="saveOrderStatus()"></button>
+      </div>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog [visible]="deliveryDetailVisible()" [modal]="true" [style]="{ width: '42rem', maxWidth: '95vw' }" header="Stitching Delivery Details" (visibleChange)="deliveryDetailVisible.set($event)">
+  @if (deliveryDetail(); as record) {
+    <div class="ops-detail-grid">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Delivery date</span><span>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Section</span><span>{{ record.stitchingSection.sectionName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.styleName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Size</span><span>{{ record.size }}</span></div></div>
+      <div class="ops-detail-card ops-detail-card--full"><div class="ops-detail-row"><span>Delivered pcs</span><span>{{ record.piecesDelivered }}</span></div></div>
+    </div>
+  }
+</p-dialog>

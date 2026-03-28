@@ -1,0 +1,96 @@
+<div class="overview">
+  @if (errorMessage(); as error) {
+    <section class="overview__error">
+      <p>{{ error }}</p>
+      <button pButton label="Retry" icon="pi pi-refresh" severity="secondary" (click)="loadDashboards()"></button>
+    </section>
+  }
+
+  <section class="overview__stats-grid">
+    @if (loading()) {
+      @for (item of [1, 2, 3, 4]; track item) {
+        <article class="overview__stat-card overview__stat-card--skeleton">
+          <p-skeleton width="7rem" height="0.9rem"></p-skeleton>
+          <p-skeleton width="5rem" height="2rem" styleClass="overview__skeleton-gap"></p-skeleton>
+          <p-skeleton width="100%" height="0.9rem"></p-skeleton>
+        </article>
+      }
+    } @else {
+      @for (card of summaryCards(); track card.label) {
+        <article [class]="'overview__stat-card overview__stat-card--' + card.tone">
+          <div class="overview__stat-topline">
+            <span class="overview__stat-eyebrow">{{ card.eyebrow }}</span>
+            <div class="overview__stat-icon">
+              <i [class]="card.icon"></i>
+            </div>
+          </div>
+          <span class="overview__stat-label">{{ card.label }}</span>
+          <strong class="overview__stat-value">{{ card.value }}</strong>
+          <p class="overview__stat-note">{{ card.note }}</p>
+        </article>
+      }
+    }
+  </section>
+
+  <section class="overview__modules">
+    @for (card of moduleCards(); track card.title) {
+      <article [class]="'overview__module-card overview__module-card--' + card.tone">
+        <div class="overview__module-header">
+          <div class="overview__module-header-copy">
+            <span class="overview__module-eyebrow">{{ card.eyebrow }}</span>
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.description }}</p>
+          </div>
+          <div class="overview__module-icon">
+            <i [class]="card.icon"></i>
+          </div>
+        </div>
+
+        <div class="overview__module-kpi">
+          <span>{{ card.primaryLabel }}</span>
+          <strong>{{ card.primaryValue }}</strong>
+        </div>
+
+        <div class="overview__metric-grid">
+          @for (metric of card.metrics; track metric.label) {
+            <div class="overview__metric-item">
+              <span>{{ metric.label }}</span>
+              <strong>{{ metric.value }}</strong>
+            </div>
+          }
+        </div>
+
+        <a
+          pButton
+          [routerLink]="card.route"
+          label="Open module"
+          icon="pi pi-arrow-up-right"
+          severity="secondary"
+          [outlined]="true"
+          styleClass="overview__module-button"
+        ></a>
+      </article>
+    }
+  </section>
+
+  @if (sectionHighlights().length) {
+    <section class="overview__sections">
+      <div class="overview__section-header">
+        <div>
+          <p class="overview__eyebrow">Stitching pulse</p>
+          <h2>Pending pieces by section</h2>
+        </div>
+        <a pButton routerLink="/stitching" label="View stitching" icon="pi pi-arrow-right" severity="secondary" text="true"></a>
+      </div>
+
+      <div class="overview__section-grid">
+        @for (section of sectionHighlights(); track section.section.autoId) {
+          <article class="overview__section-card">
+            <span>{{ section.section.sectionName }}</span>
+            <strong>{{ section.pendingPieces | number: '1.0-0' }}</strong>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</div>

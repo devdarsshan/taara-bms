@@ -1,0 +1,82 @@
+<section class="ops-page">
+  <section class="ops-summary-grid">
+    <article class="ops-summary-card ops-summary-card--ocean">
+      <div class="ops-summary-topline">
+        <span class="ops-summary-title">Current Admin</span>
+        <div class="ops-summary-icon"><i class="pi pi-user"></i></div>
+      </div>
+      <strong class="ops-summary-value admin-kpi-email">{{ currentUser()?.email }}</strong>
+      <p>{{ currentUser()?.role }}</p>
+    </article>
+    <article class="ops-summary-card ops-summary-card--teal">
+      <div class="ops-summary-topline">
+        <span class="ops-summary-title">Active Users</span>
+        <div class="ops-summary-icon"><i class="pi pi-check-circle"></i></div>
+      </div>
+      <strong class="ops-summary-value">{{ activeCount() }}</strong>
+      <p>Users who can log in now.</p>
+    </article>
+    <article class="ops-summary-card ops-summary-card--amber">
+      <div class="ops-summary-topline">
+        <span class="ops-summary-title">Invited Users</span>
+        <div class="ops-summary-icon"><i class="pi pi-envelope"></i></div>
+      </div>
+      <strong class="ops-summary-value">{{ invitedCount() }}</strong>
+      <p>Pending users waiting to complete signup.</p>
+    </article>
+  </section>
+
+  <section class="ops-panel">
+    <div class="ops-panel-header">
+      <div><p class="ops-eyebrow">Access Management</p><h2>Allowed users</h2></div>
+      <span class="ops-muted">{{ users().length }} configured accounts</span>
+    </div>
+    <div class="ops-toolbar">
+      <div class="ops-toolbar-filters"></div>
+      <div class="ops-toolbar-actions">
+        <button pButton type="button" label="Add User" icon="pi pi-plus" (click)="openInviteDialog()"></button>
+      </div>
+    </div>
+
+    <p-table [value]="users()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '72rem' }" [stripedRows]="true">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Supabase User Id</th>
+          <th>Invited</th>
+          <th>Activated</th>
+          <th>Updated</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-user>
+        <tr>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role }}</td>
+          <td><p-tag [severity]="statusSeverity(user.status)" [value]="user.status"></p-tag></td>
+          <td class="ops-table-id">{{ user.supabaseUserId || 'Pending signup' }}</td>
+          <td>{{ user.invitedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+          <td>{{ user.activatedAt ? (user.activatedAt | date: 'dd MMM yyyy, h:mm a') : 'Not yet activated' }}</td>
+          <td>{{ user.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+</section>
+
+<p-dialog [visible]="inviteDialogVisible()" [modal]="true" [style]="{ width: '34rem', maxWidth: '95vw' }" header="Invite User" (visibleChange)="inviteDialogVisible.set($event)">
+  <form [formGroup]="inviteForm" class="ops-form-grid">
+    <div class="ops-form-field ops-form-field--full">
+      <label>Email <span class="app-required">*</span></label>
+      <input pInputText formControlName="email" type="email" />
+    </div>
+    <div class="ops-form-field ops-form-field--full">
+      <label>Role <span class="app-required">*</span></label>
+      <p-select [options]="roleOptions" formControlName="role" optionLabel="label" optionValue="value" appendTo="body"></p-select>
+    </div>
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Invite User" [loading]="inviting()" (click)="inviteUser()"></button>
+    </div>
+  </form>
+</p-dialog>

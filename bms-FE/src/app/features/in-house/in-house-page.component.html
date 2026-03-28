@@ -1,0 +1,247 @@
+<section class="ops-page">
+  <section class="ops-summary-grid">
+    @for (card of summaryCards(); track card.title) {
+      <article [class]="'ops-summary-card ops-summary-card--' + card.tone">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">{{ card.title }}</span>
+          <div class="ops-summary-icon"><i [class]="card.icon"></i></div>
+        </div>
+        <strong class="ops-summary-value">{{ card.value }}</strong>
+      </article>
+    }
+  </section>
+
+  <p-tabView>
+    <p-tabPanel header="Deliveries">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Fabric Receipts</p><h2>In-house deliveries</h2></div>
+          <span class="ops-muted">{{ deliveries().length }} active records</span>
+        </div>
+        <p-table [value]="deliveries()" [loading]="loading()" dataKey="autoId" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '72rem' }" [stripedRows]="true">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Id</th>
+              <th>Date</th>
+              <th>Style</th>
+              <th>Knitting Delivery</th>
+              <th>Qty (kg)</th>
+              <th>Allocated</th>
+              <th>Pending Split</th>
+              <th>Status</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr (click)="openDelivery(record)">
+              <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.style.styleName }}</td>
+              <td>{{ record.spinningDeliveryAutoId }}</td>
+              <td>{{ record.quantityKgs | number: '1.2-2' }} kg</td>
+              <td>{{ record.allocatedQuantityKgs | number: '1.2-2' }} kg</td>
+              <td>{{ (record.quantityKgs - record.allocatedQuantityKgs) | number: '1.2-2' }} kg</td>
+              <td><p-tag [severity]="splitSeverity(record.splitStatus)" [value]="record.splitStatus"></p-tag></td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Fabric Stock">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Current Kg</p><h2>Fabric in stock</h2></div>
+          <span class="ops-muted">{{ stockRows().length }} active combinations</span>
+        </div>
+        <p-table [value]="stockRows()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '58rem' }" [stripedRows]="true">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Dia</th>
+              <th>Style</th>
+              <th>Available (kg)</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr>
+              <td>{{ record.dia.diaValue }}</td>
+              <td>{{ record.style.styleName }}</td>
+              <td>{{ record.availableQuantityKgs | number: '1.2-2' }} kg</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Cutting">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Cut Flow</p><h2>Cutting entries</h2></div>
+          <span class="ops-muted">{{ cuttings().length }} active records</span>
+        </div>
+        <div class="ops-toolbar">
+          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-actions">
+            <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedCuttings().length" (click)="confirmDeleteCuttings()"></button>
+            <button pButton label="Add Cutting" icon="pi pi-plus" (click)="openCreateCutting()"></button>
+          </div>
+        </div>
+        <p-table
+          [value]="cuttings()"
+          [loading]="loading()"
+          dataKey="autoId"
+          responsiveLayout="scroll"
+          [tableStyle]="{ 'min-width': '68rem' }"
+          [stripedRows]="true"
+          [selection]="selectedCuttings()"
+          (selectionChange)="selectedCuttings.set($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th>Id</th>
+              <th>Date</th>
+              <th>Total Kg Used</th>
+              <th>Total Output</th>
+              <th>pcs/kg</th>
+              <th>Status</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr (click)="openCutting(record)">
+              <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
+              <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.cuttingDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.totalQuantityUsedKgs | number: '1.2-2' }} kg</td>
+              <td>{{ record.totalOutputPieces }}</td>
+              <td>{{ record.pcsPerKg | number: '1.2-2' }}</td>
+              <td><p-tag [severity]="cuttingSeverity(record.status)" [value]="record.status"></p-tag></td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Stitched Stock">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Downstream Stock</p><h2>Ready downstream stock</h2></div>
+          <span class="ops-muted">{{ stitchedStockRows().length }} style-size combinations</span>
+        </div>
+        <p-table [value]="stitchedStockRows()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '62rem' }" [stripedRows]="true">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Style</th>
+              <th>Size</th>
+              <th>Plain</th>
+              <th>Printed</th>
+              <th>Defective</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr>
+              <td>{{ record.style.styleName }}</td>
+              <td>{{ record.size }}</td>
+              <td>{{ record.plainPieces }}</td>
+              <td>{{ record.printedPieces }}</td>
+              <td>{{ record.defectivePieces }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+  </p-tabView>
+</section>
+
+<p-dialog [visible]="deliveryDialogVisible()" [modal]="true" [style]="{ width: '64rem', maxWidth: '95vw' }" header="Delivery Details" (visibleChange)="deliveryDialogVisible.set($event)">
+  @if (deliveryDetail(); as delivery) {
+    <div class="ops-page">
+      <div class="ops-detail-grid">
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ delivery.style.styleName }}</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Quantity</span><span>{{ delivery.quantityKgs | number: '1.2-2' }} kg</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Allocated</span><span>{{ delivery.allocatedQuantityKgs | number: '1.2-2' }} kg</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Remaining</span><span>{{ (delivery.quantityKgs - delivery.allocatedQuantityKgs) | number: '1.2-2' }} kg</span></div></div>
+      </div>
+
+      <p-table [value]="deliverySplits()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '40rem' }">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Id</th>
+            <th>Dia</th>
+            <th>Qty (kg)</th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-split>
+          <tr>
+            <td class="ops-table-id">{{ split.autoId }}</td>
+            <td>{{ split.dia.diaValue }}</td>
+            <td>{{ split.quantityKgs | number: '1.2-2' }} kg</td>
+            <td>
+              <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!split.canDelete" (click)="confirmDeleteSplit(split)"></button>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+
+      <form [formGroup]="splitForm" class="ops-form-grid">
+        <div class="ops-form-field ops-form-field--full">
+          <label>Create splits</label>
+          <div formArrayName="rows" class="ops-line-stack">
+            @for (row of splitRows.controls; track $index) {
+              <div class="ops-inline-form ops-inline-grid" [formGroupName]="$index">
+                <p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" appendTo="body"></p-select>
+                <p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="Qty kg"></p-inputNumber>
+                <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeSplitRow($index)"></button>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="ops-dialog-actions ops-form-field--full">
+          <button pButton type="button" label="Add Row" icon="pi pi-plus" severity="secondary" [text]="true" (click)="addSplitRow()"></button>
+          <button pButton type="button" label="Save Splits" (click)="saveSplits()"></button>
+        </div>
+      </form>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog [visible]="cuttingDialogVisible()" [modal]="true" [style]="{ width: '72rem', maxWidth: '96vw' }" [header]="editingCutting() ? 'Update Cutting' : 'Create Cutting'" (visibleChange)="cuttingDialogVisible.set($event)">
+  <form [formGroup]="cuttingForm" class="ops-form-grid">
+    <div class="ops-form-field"><label>Cutting date <span class="app-required">*</span></label><p-datePicker formControlName="cuttingDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Notes</label><input pInputText formControlName="notes" /></div>
+
+    <div class="ops-form-field ops-form-field--full">
+      <label>Cutting rows <span class="app-required">*</span></label>
+      <div formArrayName="rows" class="ops-line-stack">
+        @for (row of cuttingRows.controls; track $index) {
+          <div class="ops-inline-form ops-inline-grid ops-inline-grid--seven" [formGroupName]="$index">
+            <p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
+            <p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
+            <p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" appendTo="body"></p-select>
+            <p-inputNumber formControlName="availableQuantityKgs" mode="decimal" [readonly]="true" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg"></p-inputNumber>
+            <p-inputNumber formControlName="quantityUsedKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg" placeholder="Used kg"></p-inputNumber>
+            <p-inputNumber formControlName="outputPieces" placeholder="Output pcs"></p-inputNumber>
+            <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeCuttingRow($index)"></button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Add Row" icon="pi pi-plus" severity="secondary" [text]="true" (click)="addCuttingRow()"></button>
+    </div>
+
+    <div class="ops-detail-grid ops-form-field--full">
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Kg Used</span><span>{{ totalKgUsed() | number: '1.2-2' }} kg</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Output Pieces</span><span>{{ totalOutputPieces() }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>pcs/kg</span><span>{{ pcsPerKg() | number: '1.2-2' }}</span></div></div>
+    </div>
+
+    <div class="ops-dialog-actions ops-form-field--full">
+      @if (editingCutting(); as record) {
+        <button pButton type="button" label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="confirmDeleteCutting(record)"></button>
+      }
+      <button pButton type="button" label="Save Cutting" (click)="saveCutting()"></button>
+    </div>
+  </form>
+</p-dialog>

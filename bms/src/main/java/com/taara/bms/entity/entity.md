@@ -1,0 +1,1 @@
+All the table entities goes here. Use Lombok for getter and setters. All tables system generated field like, sid, createAt, updatedAt should be created a seperate base class and it should be extended by all entities to use them.

@@ -1,0 +1,79 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.auth-page__panel {
+  width: min(56rem, 100%);
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.auth-page__hero,
+.auth-page__card {
+  border: 1px solid var(--app-border);
+  border-radius: 1.8rem;
+  background: linear-gradient(180deg, var(--app-surface-highlight), var(--app-surface-elevated));
+  box-shadow: var(--app-shadow-soft);
+}
+
+.auth-page__hero {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-page__hero h1 {
+  margin: 0;
+  color: var(--app-text-strong);
+  font-family: var(--app-heading-font);
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.06em;
+}
+
+.auth-page__hero p:last-of-type {
+  color: var(--app-muted);
+  line-height: 1.7;
+  max-width: 28rem;
+}
+
+.auth-page__card :host,
+.auth-page__card .p-card,
+.auth-page__card .p-card-body,
+.auth-page__card .p-card-content {
+  height: 100%;
+}
+
+.auth-page__switch {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.auth-page__password,
+.auth-page__password .p-password,
+.auth-page__password .p-inputtext {
+  width: 100%;
+}
+
+.auth-page__footer {
+  margin: 0;
+  color: var(--app-muted);
+  text-align: center;
+}
+
+.auth-page__footer a {
+  color: var(--app-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .auth-page__panel {
+    grid-template-columns: 1fr;
+  }
+}

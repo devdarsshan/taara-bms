@@ -1,0 +1,86 @@
+<div class="shell" [class.shell--collapsed]="sidebarCollapsed()">
+  <aside class="shell__sidebar">
+    <button type="button" class="shell__collapse" (click)="toggleSidebar()">
+      <i [class]="sidebarCollapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"></i>
+    </button>
+
+    <div class="shell__brand">
+      <span class="shell__brand-mark">T</span>
+      @if (!sidebarCollapsed()) {
+      <div>
+        <p class="shell__eyebrow">Taara BMS</p>
+        <h1>Operations Console</h1>
+      </div>
+      }
+    </div>
+
+    <nav class="shell__nav" aria-label="Primary navigation">
+      @for (item of navItems; track item.route) {
+        <button
+          type="button"
+          class="shell__nav-link"
+          [class.shell__nav-link--active]="isRouteActive(item.route)"
+          (click)="navigateTo(item.route)"
+        >
+          <span class="shell__nav-icon">
+            <i [class]="item.icon"></i>
+          </span>
+          @if (!sidebarCollapsed()) {
+          <span class="shell__nav-copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.caption }}</small>
+          </span>
+          }
+        </button>
+      }
+    </nav>
+
+    <button type="button" class="shell__account" [class.shell__account--clickable]="authService.isAdmin()" (click)="openAccountDetails()">
+      @if (!sidebarCollapsed()) {
+        <div class="shell__account-copy">
+          <p class="shell__eyebrow">Signed in</p>
+          <strong>{{ authService.currentUser()?.email }}</strong>
+          <small>{{ authService.currentUser()?.role }}</small>
+        </div>
+      } @else {
+        <span class="shell__nav-icon">
+          <i class="pi pi-user"></i>
+        </span>
+      }
+
+      @if (!sidebarCollapsed() && authService.isAdmin()) {
+        <span class="shell__account-manage">Manage</span>
+      }
+    </button>
+
+    @if (sidebarCollapsed()) {
+      <button pButton type="button" icon="pi pi-sign-out" [text]="true" (click)="logout()"></button>
+    } @else {
+      <button pButton type="button" icon="pi pi-sign-out" [text]="true" label="Logout" (click)="logout()"></button>
+    }
+
+    <div class="shell__theme">
+      @if (!sidebarCollapsed()) {
+      <div class="shell__theme-copy">
+        <p class="shell__eyebrow">Appearance</p>
+        <h2>Dark mode</h2>
+        <span class="shell__theme-state">{{ themeLabel() === 'dark' ? 'Enabled' : 'Light mode' }}</span>
+      </div>
+      }
+
+      <div class="shell__theme-toggle">
+        <i class="pi pi-sun"></i>
+        <p-toggleSwitch [formControl]="themeControl" inputId="themeModeToggle"></p-toggleSwitch>
+        @if (!sidebarCollapsed()) {
+        <i class="pi pi-moon"></i>
+        }
+      </div>
+    </div>
+  </aside>
+
+  <main class="shell__content">
+    <section class="shell__page">
+      <router-outlet></router-outlet>
+    </section>
+  </main>
+</div>

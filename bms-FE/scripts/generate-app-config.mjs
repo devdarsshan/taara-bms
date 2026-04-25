@@ -6,7 +6,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, '..');
 const outputPath = resolve(projectRoot, 'public', 'app-config.js');
 
-const apiBaseUrl = process.env.TAARA_API_BASE_URL || 'http://localhost:8080/api';
+const apiBaseUrl = process.env.TAARA_API_BASE_URL || '/api';
 const supabaseUrl = process.env.TAARA_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.TAARA_SUPABASE_ANON_KEY || '';
 

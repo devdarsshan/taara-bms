@@ -16,6 +16,8 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -96,6 +98,28 @@ public class AppAuthService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public MessageResponse deleteUser(UUID userId, Authentication authentication) {
+        AppUser currentUser = requireAppUser(authentication);
+        AppUser user = appUserRepository.findById(userId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("APP_USER_NOT_FOUND", "Allowed user was not found"));
+
+        if (user.getId().equals(currentUser.getId())) {
+            throw new BusinessValidationException(
+                    "APP_USER_SELF_DELETE_BLOCKED",
+                    "You cannot delete your own admin access",
+                    Map.of("email", user.getEmail())
+            );
+        }
+
+        user.setDeleted(true);
+        user.setStatus(AppUserStatus.DISABLED);
+        appUserRepository.save(user);
+        log.info("Soft-deleted allowed user '{}'", user.getEmail());
+        return new MessageResponse("Allowed user access was removed.");
     }
 
     public CurrentUserResponse getCurrentUser(Authentication authentication) {

@@ -1,7 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -31,7 +31,7 @@ import {
 import { InHouseApiService } from '../../core/services/inhouse-api.service';
 import { MasterDataApiService } from '../../core/services/master-data-api.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { getApiErrorMessage } from '../../core/utils/api-error.utils';
+import { extractApiError, getApiErrorMessage } from '../../core/utils/api-error.utils';
 
 type SplitRowForm = FormGroup<{
   diaAutoId: FormControl<string>;
@@ -90,6 +90,7 @@ export class InHousePageComponent {
   readonly deliveryDetail = signal<InHouseDelivery | null>(null);
   readonly deliverySplits = signal<InHouseSplit[]>([]);
   readonly deliveryDialogVisible = signal(false);
+  readonly splitError = signal<string | null>(null);
   readonly selectedCuttings = signal<CuttingEntry[]>([]);
 
   readonly cuttingDialogVisible = signal(false);
@@ -197,6 +198,7 @@ export class InHousePageComponent {
   openDelivery(record: InHouseDelivery): void {
     this.deliveryDetail.set(record);
     this.deliveryDialogVisible.set(true);
+    this.splitError.set(null);
     this.splitRows.clear();
     this.addSplitRow();
     this.inHouseApi.getSplits(record.autoId)
@@ -208,6 +210,7 @@ export class InHousePageComponent {
   }
 
   addSplitRow(): void {
+    this.splitError.set(null);
     this.splitRows.push(this.fb.group({
       diaAutoId: this.fb.control('', Validators.required),
       quantityKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)])
@@ -215,6 +218,7 @@ export class InHousePageComponent {
   }
 
   removeSplitRow(index: number): void {
+    this.splitError.set(null);
     if (this.splitRows.length > 1) {
       this.splitRows.removeAt(index);
     }
@@ -224,8 +228,11 @@ export class InHousePageComponent {
     const delivery = this.deliveryDetail();
     if (!delivery || this.splitForm.invalid) {
       this.splitForm.markAllAsTouched();
+      this.splitError.set('Choose a Dia and enter a positive quantity for every split row.');
+      this.notificationService.warn('Splits not saved', 'Complete the highlighted split fields before saving.');
       return;
     }
+    this.splitError.set(null);
     const payload = {
       splits: this.splitRows.getRawValue().map((row) => ({
         diaAutoId: row.diaAutoId,
@@ -242,7 +249,11 @@ export class InHousePageComponent {
           this.addSplitRow();
           this.loadData();
         },
-        error: (error) => this.notificationService.error('Unable to save splits', getApiErrorMessage(error))
+        error: (error) => {
+          const message = this.buildSplitErrorMessage(error);
+          this.splitError.set(message);
+          this.notificationService.error('Unable to save splits', message);
+        }
       });
   }
 
@@ -432,6 +443,32 @@ export class InHousePageComponent {
 
   cuttingSeverity(status: string): 'success' | 'warn' {
     return status === 'COMPLETED' ? 'success' : 'warn';
+  }
+
+  isInvalid(control: AbstractControl | null): boolean {
+    return !!control && control.invalid && (control.touched || control.dirty);
+  }
+
+  private buildSplitErrorMessage(error: unknown): string {
+    const apiError = extractApiError(error);
+    if (!apiError) {
+      return getApiErrorMessage(error);
+    }
+
+    if (apiError.code === 'SPLIT_EXCEEDS_DELIVERY') {
+      const available = Number(apiError.details['deliveryQuantityKgs'] ?? 0) - Number(apiError.details['alreadyAllocatedQuantityKgs'] ?? 0);
+      const requested = Number(apiError.details['requestedQuantityKgs'] ?? 0);
+      return `Split quantity exceeds available delivery quantity. Available: ${this.formatNumber(available)} kg, requested: ${this.formatNumber(requested)} kg.`;
+    }
+
+    if (apiError.code === 'VALIDATION_ERROR') {
+      const validationMessages = Object.values(apiError.details)
+        .filter((value): value is string => typeof value === 'string')
+        .join(' ');
+      return validationMessages || apiError.message;
+    }
+
+    return apiError.message;
   }
 
   private toApiDate(value: Date): string {

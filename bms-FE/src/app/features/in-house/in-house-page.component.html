@@ -184,13 +184,18 @@
       </p-table>
 
       <form [formGroup]="splitForm" class="ops-form-grid">
+        @if (splitError(); as error) {
+          <div class="ops-form-field ops-form-field--full">
+            <p-message severity="error" [text]="error"></p-message>
+          </div>
+        }
         <div class="ops-form-field ops-form-field--full">
           <label>Create splits</label>
           <div formArrayName="rows" class="ops-line-stack">
             @for (row of splitRows.controls; track $index) {
               <div class="ops-inline-form ops-inline-grid" [formGroupName]="$index">
-                <p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" appendTo="body"></p-select>
-                <p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="Qty kg"></p-inputNumber>
+                <p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" appendTo="body" [class.app-control-invalid]="isInvalid(row.controls.diaAutoId)"></p-select>
+                <p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" placeholder="Qty kg" [class.app-control-invalid]="isInvalid(row.controls.quantityKgs)"></p-inputNumber>
                 <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeSplitRow($index)"></button>
               </div>
             }

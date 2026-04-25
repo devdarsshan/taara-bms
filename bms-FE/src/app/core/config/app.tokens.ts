@@ -12,7 +12,7 @@ function resolveRuntimeConfig(): RuntimeConfig | undefined {
 
 function resolveApiBaseUrl(): string {
   const runtimeConfig = resolveRuntimeConfig();
-  return runtimeConfig?.apiBaseUrl ?? 'http://localhost:8080/api';
+  return runtimeConfig?.apiBaseUrl ?? '/api';
 }
 
 function resolveSupabaseUrl(): string {

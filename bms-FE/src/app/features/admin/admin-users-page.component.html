@@ -26,43 +26,84 @@
     </article>
   </section>
 
-  <section class="ops-panel">
-    <div class="ops-panel-header">
-      <div><p class="ops-eyebrow">Access Management</p><h2>Allowed users</h2></div>
-      <span class="ops-muted">{{ users().length }} configured accounts</span>
-    </div>
-    <div class="ops-toolbar">
-      <div class="ops-toolbar-filters"></div>
-      <div class="ops-toolbar-actions">
-        <button pButton type="button" label="Add User" icon="pi pi-plus" (click)="openInviteDialog()"></button>
-      </div>
-    </div>
+  <p-tabView>
+    <p-tabPanel header="Allowed Users">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Access Management</p><h2>Allowed users</h2></div>
+          <span class="ops-muted">{{ users().length }} configured accounts</span>
+        </div>
+        <div class="ops-toolbar">
+          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-actions">
+            <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" [loading]="deletingUsers()" [disabled]="!selectedUsers().length" (click)="confirmDeleteSelectedUsers()"></button>
+            <button pButton type="button" label="Add User" icon="pi pi-plus" (click)="openInviteDialog()"></button>
+          </div>
+        </div>
 
-    <p-table [value]="users()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '72rem' }" [stripedRows]="true">
-      <ng-template pTemplate="header">
-        <tr>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Supabase User Id</th>
-          <th>Invited</th>
-          <th>Activated</th>
-          <th>Updated</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-user>
-        <tr>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role }}</td>
-          <td><p-tag [severity]="statusSeverity(user.status)" [value]="user.status"></p-tag></td>
-          <td class="ops-table-id">{{ user.supabaseUserId || 'Pending signup' }}</td>
-          <td>{{ user.invitedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
-          <td>{{ user.activatedAt ? (user.activatedAt | date: 'dd MMM yyyy, h:mm a') : 'Not yet activated' }}</td>
-          <td>{{ user.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </section>
+        <p-table
+          [value]="users()"
+          [loading]="loading()"
+          dataKey="id"
+          responsiveLayout="scroll"
+          [tableStyle]="{ 'min-width': '78rem' }"
+          [stripedRows]="true"
+          [selection]="selectedUsers()"
+          (selectionChange)="selectedUsers.set($event)"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Supabase User Id</th>
+              <th>Invited</th>
+              <th>Activated</th>
+              <th>Updated</th>
+              <th style="width: 4rem"></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-user>
+            <tr>
+              <td><p-tableCheckbox [value]="user" [disabled]="!canDeleteUser(user)"></p-tableCheckbox></td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.role }}</td>
+              <td><p-tag [severity]="statusSeverity(user.status)" [value]="user.status"></p-tag></td>
+              <td class="ops-table-id">{{ user.supabaseUserId || 'Pending signup' }}</td>
+              <td>{{ user.invitedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+              <td>{{ user.activatedAt ? (user.activatedAt | date: 'dd MMM yyyy, h:mm a') : 'Not yet activated' }}</td>
+              <td>{{ user.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+              <td>
+                <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!canDeleteUser(user)" (click)="confirmDeleteUser(user)"></button>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Database Reset">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Admin Maintenance</p><h2>Database reset</h2></div>
+          <span class="ops-muted">Allowed users are preserved</span>
+        </div>
+        <div class="ops-form-grid admin-reset-grid">
+          <div class="ops-form-field ops-form-field--full">
+            <p-message severity="warn" text="This permanently clears all business and master data, including styles, dias, orders, deliveries, cuttings, stitching, printing, and packing records. Allowed users remain available."></p-message>
+          </div>
+          <div class="ops-form-field">
+            <label>Confirmation <span class="app-required">*</span></label>
+            <input pInputText type="text" [value]="resetConfirmText()" (input)="resetConfirmText.set($any($event.target).value)" placeholder="Type RESET" />
+          </div>
+          <div class="ops-dialog-actions">
+            <button pButton type="button" label="Reset Business Data" icon="pi pi-trash" severity="danger" [loading]="resettingData()" [disabled]="!resetReady()" (click)="resetBusinessData()"></button>
+          </div>
+        </div>
+      </section>
+    </p-tabPanel>
+  </p-tabView>
 </section>
 
 <p-dialog [visible]="inviteDialogVisible()" [modal]="true" [style]="{ width: '34rem', maxWidth: '95vw' }" header="Invite User" (visibleChange)="inviteDialogVisible.set($event)">

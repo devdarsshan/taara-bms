@@ -5,14 +5,18 @@ import com.taara.bms.dto.auth.CurrentUserResponse;
 import com.taara.bms.dto.auth.InviteUserRequest;
 import com.taara.bms.dto.auth.SignupRequest;
 import com.taara.bms.dto.common.MessageResponse;
+import com.taara.bms.service.auth.AdminMaintenanceService;
 import com.taara.bms.service.auth.AppAuthService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,9 +28,11 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AppAuthService appAuthService;
+    private final AdminMaintenanceService adminMaintenanceService;
 
-    public AuthController(AppAuthService appAuthService) {
+    public AuthController(AppAuthService appAuthService, AdminMaintenanceService adminMaintenanceService) {
         this.appAuthService = appAuthService;
+        this.adminMaintenanceService = adminMaintenanceService;
     }
 
     @PostMapping("/signup")
@@ -51,5 +57,17 @@ public class AuthController {
     public AppUserResponse inviteUser(@Valid @RequestBody InviteUserRequest request) {
         log.info("Creating invited access-managed user. email='{}', role={}", request.email(), request.role());
         return appAuthService.inviteUser(request);
+    }
+
+    @DeleteMapping("/admin/users/{userId}")
+    public MessageResponse deleteUser(@PathVariable UUID userId, Authentication authentication) {
+        log.info("Deleting access-managed user. userId='{}'", userId);
+        return appAuthService.deleteUser(userId, authentication);
+    }
+
+    @PostMapping("/admin/maintenance/reset-data")
+    public MessageResponse resetBusinessData() {
+        log.warn("Received admin maintenance reset-data request.");
+        return adminMaintenanceService.resetBusinessData();
     }
 }

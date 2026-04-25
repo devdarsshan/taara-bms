@@ -113,6 +113,14 @@ export class AuthService {
     return this.http.post<ManagedUser>(`${this.apiUrl}/auth/admin/users`, payload);
   }
 
+  deleteManagedUser(userId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/auth/admin/users/${userId}`);
+  }
+
+  resetBusinessData(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/auth/admin/maintenance/reset-data`, {});
+  }
+
   private async initialize(): Promise<void> {
     const { data } = await this.supabase.auth.getSession();
     this.session.set(data.session);

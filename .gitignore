@@ -46,11 +46,13 @@ out/
 
 # dotenv environment variable files
 .env
+.env.docker
 .env.local
 .env.*.local
 
 # npm cache directory
 .npm
+.npm-cache/
 *.tgz
 
 # yarn v2

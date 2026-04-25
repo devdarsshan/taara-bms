@@ -112,8 +112,7 @@ public class SpinningService {
                 .stream()
                 .map(SpinningDelivery::getFinalQuantityKgs)
                 .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
-        BigDecimal overallPending = spinningOrderRepository.sumActiveQuantityByStyle(null)
-                .subtract(spinningDeliveryRepository.sumActiveFinalQuantityByStyle(null));
+        BigDecimal overallPending = totalDispatched.subtract(totalReceived).max(BigDecimalUtils.ZERO);
         log.debug("Spinning dashboard totals calculated: dispatched={}, received={}, pending={}",
                 totalDispatched, totalReceived, overallPending);
         return new SpinningDashboardResponse(totalDispatched, totalReceived, overallPending);

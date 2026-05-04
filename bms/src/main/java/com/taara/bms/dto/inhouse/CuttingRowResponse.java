@@ -12,6 +12,6 @@ public record CuttingRowResponse(
         StyleRefResponse style,
         GarmentSize size,
         BigDecimal quantityUsedKgs,
-        Integer outputPieces
+        BigDecimal ratePerPiece
 ) {
 }

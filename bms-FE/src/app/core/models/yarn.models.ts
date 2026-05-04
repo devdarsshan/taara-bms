@@ -24,3 +24,10 @@ export interface YarnOrderCreateRequest {
   quantityKgs: number;
   supplierNotes?: string | null;
 }
+
+export interface YarnOrderUpdateRequest {
+  orderDate: string;
+  styleAutoId: string;
+  quantityKgs: number;
+  supplierNotes?: string | null;
+}

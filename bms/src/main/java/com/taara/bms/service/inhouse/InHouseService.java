@@ -5,6 +5,8 @@ import com.taara.bms.dto.inhouse.CuttingCreateRequest;
 import com.taara.bms.dto.inhouse.CuttingResponse;
 import com.taara.bms.dto.inhouse.CuttingRowRequest;
 import com.taara.bms.dto.inhouse.CuttingUpdateRequest;
+import com.taara.bms.dto.inhouse.ExistingStockCreateRequest;
+import com.taara.bms.dto.inhouse.ExistingStockResponse;
 import com.taara.bms.dto.inhouse.InHouseDashboardResponse;
 import com.taara.bms.dto.inhouse.InHouseDeliveryResponse;
 import com.taara.bms.dto.inhouse.InHouseSplitBatchRequest;
@@ -15,6 +17,7 @@ import com.taara.bms.dto.inhouse.StitchedStockResponse;
 import com.taara.bms.entity.inhouse.CuttingEntry;
 import com.taara.bms.entity.inhouse.CuttingEntryRow;
 import com.taara.bms.entity.inhouse.InHouseDelivery;
+import com.taara.bms.entity.inhouse.InHouseExistingStock;
 import com.taara.bms.entity.inhouse.InHouseStockSplit;
 import com.taara.bms.entity.masterdata.Dia;
 import com.taara.bms.entity.masterdata.Style;
@@ -37,6 +40,7 @@ import com.taara.bms.mapper.inhouse.InHouseMapper;
 import com.taara.bms.repo.inhouse.CuttingEntryRepository;
 import com.taara.bms.repo.inhouse.CuttingEntryRowRepository;
 import com.taara.bms.repo.inhouse.InHouseDeliveryRepository;
+import com.taara.bms.repo.inhouse.InHouseExistingStockRepository;
 import com.taara.bms.repo.inhouse.InHouseStockSplitRepository;
 import com.taara.bms.repo.packing.PackingEntryRepository;
 import com.taara.bms.repo.printing.PrintingDeliveryRepository;
@@ -80,6 +84,7 @@ public class InHouseService {
     private final InHouseStockSplitRepository inHouseStockSplitRepository;
     private final CuttingEntryRepository cuttingEntryRepository;
     private final CuttingEntryRowRepository cuttingEntryRowRepository;
+    private final InHouseExistingStockRepository existingStockRepository;
     private final StitchingOrderRepository stitchingOrderRepository;
     private final StitchingOrderRowRepository stitchingOrderRowRepository;
     private final StitchingDeliveryRepository stitchingDeliveryRepository;
@@ -97,6 +102,7 @@ public class InHouseService {
             InHouseStockSplitRepository inHouseStockSplitRepository,
             CuttingEntryRepository cuttingEntryRepository,
             CuttingEntryRowRepository cuttingEntryRowRepository,
+            InHouseExistingStockRepository existingStockRepository,
             StitchingOrderRepository stitchingOrderRepository,
             StitchingOrderRowRepository stitchingOrderRowRepository,
             StitchingDeliveryRepository stitchingDeliveryRepository,
@@ -113,6 +119,7 @@ public class InHouseService {
         this.inHouseStockSplitRepository = inHouseStockSplitRepository;
         this.cuttingEntryRepository = cuttingEntryRepository;
         this.cuttingEntryRowRepository = cuttingEntryRowRepository;
+        this.existingStockRepository = existingStockRepository;
         this.stitchingOrderRepository = stitchingOrderRepository;
         this.stitchingOrderRowRepository = stitchingOrderRowRepository;
         this.stitchingDeliveryRepository = stitchingDeliveryRepository;
@@ -224,6 +231,14 @@ public class InHouseService {
             fabricByCombo.merge(key, BigDecimalUtils.scale(split.getQuantityKgs()), BigDecimal::add);
         }
 
+        for (InHouseExistingStock added : existingStockRepository.findAll()) {
+            if (added.isDeleted() || !matchesDia(added.getDia(), diaAutoId) || !matchesStyle(added.getStyle(), styleAutoId)) {
+                continue;
+            }
+            FabricKey key = new FabricKey(added.getDia(), added.getStyle());
+            fabricByCombo.merge(key, BigDecimalUtils.scale(added.getQuantityKgs()), BigDecimal::add);
+        }
+
         for (CuttingEntry cuttingEntry : cuttingEntryRepository.findAll()) {
             if (cuttingEntry.isDeleted()) {
                 continue;
@@ -247,6 +262,28 @@ public class InHouseService {
                         referenceMapper.toStyleRef(entry.getKey().style()),
                         BigDecimalUtils.scale(entry.getValue())
                 ))
+                .toList();
+    }
+
+    @Transactional
+    public ExistingStockResponse createExistingStock(ExistingStockCreateRequest request) {
+        log.info("Creating existing stock entry for dia='{}', style='{}'", request.diaAutoId(), request.styleAutoId());
+        InHouseExistingStock entry = new InHouseExistingStock();
+        entry.setAutoId(autoIdService.next(AutoIdSequence.GENERAL));
+        entry.setEntryDate(request.entryDate());
+        entry.setDia(lookupService.getActiveDiaByAutoId(request.diaAutoId()));
+        entry.setStyle(lookupService.getActiveStyleByAutoId(request.styleAutoId()));
+        entry.setQuantityKgs(BigDecimalUtils.scale(request.quantityKgs()));
+        entry.setNotes(blankToNull(request.notes()));
+        InHouseExistingStock saved = existingStockRepository.save(entry);
+        log.info("Created existing stock '{}'", saved.getAutoId());
+        return mapper.toExistingStockResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExistingStockResponse> getExistingStocks() {
+        return existingStockRepository.findAllByIsDeletedFalseOrderByEntryDateDesc().stream()
+                .map(mapper::toExistingStockResponse)
                 .toList();
     }
 
@@ -274,6 +311,7 @@ public class InHouseService {
         cuttingEntry.setAutoId(autoIdService.next(AutoIdSequence.CUTTING));
         cuttingEntry.setCuttingDate(request.cuttingDate());
         cuttingEntry.setNotes(blankToNull(request.notes()));
+        cuttingEntry.setTotalOutputPieces(request.totalOutputPieces() != null ? request.totalOutputPieces() : 0);
         replaceCuttingRows(cuttingEntry, request.rows());
         recomputeCuttingTotals(cuttingEntry);
         CuttingEntry saved = cuttingEntryRepository.save(cuttingEntry);
@@ -296,6 +334,7 @@ public class InHouseService {
         CuttingEntry cuttingEntry = lookupService.getActiveCuttingEntryByAutoId(cuttingAutoId);
         validateCuttingRows(request.rows(), cuttingEntry);
         cuttingEntry.setNotes(blankToNull(request.notes()));
+        cuttingEntry.setTotalOutputPieces(request.totalOutputPieces() != null ? request.totalOutputPieces() : 0);
         replaceCuttingRows(cuttingEntry, request.rows());
         recomputeCuttingTotals(cuttingEntry);
         CuttingEntry saved = cuttingEntryRepository.save(cuttingEntry);
@@ -353,7 +392,7 @@ public class InHouseService {
 
     @Transactional(readOnly = true)
     public int calculateReadyToStitchAvailable(UUID styleId, GarmentSize size) {
-        int cutPieces = Objects.requireNonNullElse(cuttingEntryRowRepository.sumCompletedOutputPiecesByStyleAndSize(styleId, size), 0);
+        int cutPieces = Objects.requireNonNullElse(cuttingEntryRowRepository.sumCompletedOutputPiecesByStyleAndSize(styleId, size), BigDecimal.ZERO).intValue();
         int committedPieces = Objects.requireNonNullElse(stitchingOrderRowRepository.sumActivePiecesTakenByStyleAndSize(styleId, size), 0);
         int available = Math.max(cutPieces - committedPieces, 0);
         log.debug("Ready-to-stitch availability for styleId={}, size={}: cutPieces={}, committedPieces={}, available={}",
@@ -426,7 +465,7 @@ public class InHouseService {
             row.setStyle(lookupService.getActiveStyleByAutoId(rowRequest.styleAutoId()));
             row.setSize(rowRequest.size());
             row.setQuantityUsedKgs(BigDecimalUtils.scale(rowRequest.quantityUsedKgs()));
-            row.setOutputPieces(rowRequest.outputPieces());
+            row.setRatePerPiece(rowRequest.ratePerPiece() != null ? BigDecimalUtils.scale(rowRequest.ratePerPiece()) : null);
             cuttingEntry.getRows().add(row);
         }
     }
@@ -437,15 +476,11 @@ public class InHouseService {
                 .filter(Objects::nonNull)
                 .map(BigDecimalUtils::scale)
                 .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
-        int totalOutputPieces = cuttingEntry.getRows().stream()
-                .map(CuttingEntryRow::getOutputPieces)
-                .filter(Objects::nonNull)
-                .mapToInt(Integer::intValue)
-                .sum();
-        boolean completed = cuttingEntry.getRows().stream().allMatch(row -> row.getOutputPieces() != null);
+        
+        int totalOutputPieces = cuttingEntry.getTotalOutputPieces() != null ? cuttingEntry.getTotalOutputPieces() : 0;
+        boolean completed = totalOutputPieces > 0;
 
         cuttingEntry.setTotalQuantityUsedKgs(BigDecimalUtils.scale(totalQuantity));
-        cuttingEntry.setTotalOutputPieces(totalOutputPieces);
         cuttingEntry.setStatus(completed ? CuttingStatus.COMPLETED : CuttingStatus.IN_PROGRESS);
         if (totalQuantity.signum() > 0 && totalOutputPieces > 0) {
             cuttingEntry.setPcsPerKg(BigDecimal.valueOf(totalOutputPieces).divide(totalQuantity, 2, RoundingMode.HALF_UP));
@@ -459,7 +494,8 @@ public class InHouseService {
 
     private BigDecimal calculateAvailableFabricKgs(UUID diaId, UUID styleId, CuttingEntry excludingEntry) {
         BigDecimal splitQuantity = BigDecimalUtils.scale(inHouseStockSplitRepository.sumActiveQuantityByDiaAndStyle(diaId, styleId));
-        BigDecimal usedQuantity = BigDecimalUtils.scale(cuttingEntryRepository.sumActiveQuantityByDiaAndStyle(diaId, styleId));
+        BigDecimal addedQuantity = BigDecimalUtils.scale(existingStockRepository.sumQuantityByDiaAndStyle(diaId, styleId));
+        BigDecimal usedQuantity = BigDecimalUtils.scale(cuttingEntryRowRepository.sumActiveQuantityUsedByDiaAndStyle(diaId, styleId));
         if (excludingEntry != null) {
             BigDecimal currentEntryUsed = excludingEntry.getRows().stream()
                     .filter(row -> row.getDia().getId().equals(diaId) && row.getStyle().getId().equals(styleId))
@@ -469,17 +505,20 @@ public class InHouseService {
                     .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
             usedQuantity = usedQuantity.subtract(currentEntryUsed);
         }
-        return BigDecimalUtils.scale(splitQuantity.subtract(usedQuantity).max(BigDecimalUtils.ZERO));
+        return BigDecimalUtils.scale(splitQuantity.add(addedQuantity).subtract(usedQuantity).max(BigDecimalUtils.ZERO));
     }
 
     private boolean canDeleteSplit(InHouseStockSplit split) {
         BigDecimal totalSplitStock = BigDecimalUtils.scale(
                 inHouseStockSplitRepository.sumActiveQuantityByDiaAndStyle(split.getDia().getId(), split.getStyle().getId())
         );
-        BigDecimal totalCuttingUsage = BigDecimalUtils.scale(
-                cuttingEntryRepository.sumActiveQuantityByDiaAndStyle(split.getDia().getId(), split.getStyle().getId())
+        BigDecimal totalAddedStock = BigDecimalUtils.scale(
+                existingStockRepository.sumQuantityByDiaAndStyle(split.getDia().getId(), split.getStyle().getId())
         );
-        BigDecimal remainingIfDeleted = totalSplitStock.subtract(BigDecimalUtils.scale(split.getQuantityKgs()));
+        BigDecimal totalCuttingUsage = BigDecimalUtils.scale(
+                cuttingEntryRowRepository.sumActiveQuantityUsedByDiaAndStyle(split.getDia().getId(), split.getStyle().getId())
+        );
+        BigDecimal remainingIfDeleted = totalSplitStock.add(totalAddedStock).subtract(BigDecimalUtils.scale(split.getQuantityKgs()));
         boolean canDelete = remainingIfDeleted.compareTo(totalCuttingUsage) >= 0;
         log.debug("Split delete check for '{}': totalSplitStock={}, totalCuttingUsage={}, remainingIfDeleted={}, canDelete={}",
                 split.getAutoId(), totalSplitStock, totalCuttingUsage, remainingIfDeleted, canDelete);

@@ -14,7 +14,8 @@ public enum AutoIdSequence {
     STITCHING_DELIVERY("stitching_delivery_auto_seq", "STD"),
     PRINTING_ORDER("printing_order_auto_seq", "PRO"),
     PRINTING_DELIVERY("printing_delivery_auto_seq", "PRD"),
-    PACKING("packing_auto_seq", "PAC");
+    PACKING("packing_auto_seq", "PAC"),
+    GENERAL("general_auto_seq", "GEN");
 
     private final String sequenceName;
     private final String prefix;

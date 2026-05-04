@@ -6,6 +6,8 @@ import {
   CuttingEntry,
   CuttingStatus,
   CuttingUpdateRequest,
+  ExistingStockCreateRequest,
+  ExistingStockResponse,
   InHouseDashboardResponse,
   InHouseDelivery,
   InHouseSplit,
@@ -39,6 +41,14 @@ export class InHouseApiService {
 
   getStock(filters?: { diaAutoId?: string; styleAutoId?: string }) {
     return this.api.get<InHouseStock[]>('/inhouse/stock', filters);
+  }
+
+  createExistingStock(payload: ExistingStockCreateRequest) {
+    return this.api.post<ExistingStockResponse, ExistingStockCreateRequest>('/inhouse/existing-stocks', payload);
+  }
+
+  getExistingStocks() {
+    return this.api.get<ExistingStockResponse[]>('/inhouse/existing-stocks');
   }
 
   getCuttings(

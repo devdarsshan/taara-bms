@@ -112,7 +112,8 @@ export class StitchingPageComponent {
     { label: 'S', value: 'S' },
     { label: 'M', value: 'M' },
     { label: 'L', value: 'L' },
-    { label: 'XL', value: 'XL' }
+    { label: 'XL', value: 'XL' },
+    { label: '2XL', value: 'XXL' }
   ];
 
   readonly styleOptions = computed<OptionItem[]>(() => this.styles().map((style) => ({ label: style.styleName, value: style.autoId })));
@@ -178,10 +179,41 @@ export class StitchingPageComponent {
   }
 
   openCreateOrder(): void {
+    this.editingOrder.set(null);
     this.orderDialogVisible.set(true);
     this.orderForm.reset({ orderDate: new Date(), expectedSize: 'M', expectedPieces: null, notes: '' });
     this.orderRows.clear();
     this.addOrderRow();
+  }
+
+  openEditOrder(record: StitchingOrder): void {
+    this.editingOrder.set(record);
+    this.orderDialogVisible.set(true);
+    this.orderForm.reset({
+      orderDate: new Date(record.orderDate),
+      expectedSize: record.expectedSize,
+      expectedPieces: record.expectedPieces,
+      notes: record.notes ?? ''
+    });
+    this.orderRows.clear();
+    for (const row of record.rows) {
+      const group = this.fb.group({
+        stitchingSectionAutoId: this.fb.control(row.stitchingSection.autoId, Validators.required),
+        styleAutoId: this.fb.control(row.style.autoId, Validators.required),
+        size: this.fb.control<GarmentSize>(row.size, Validators.required),
+        availablePieces: this.fb.control<number | null>({ value: null, disabled: true }),
+        piecesTaken: this.fb.control<number | null>(row.piecesTaken, [Validators.required, Validators.min(1)]),
+        ratePerPiece: this.fb.control<number | null>(row.ratePerPiece ?? null, [Validators.min(0)])
+      });
+      this.orderRows.push(group);
+      
+      this.stitchingApi.getAvailableOrderPieces(row.style.autoId, row.size)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (response) => group.controls.availablePieces.setValue(response.availablePieces),
+          error: () => group.controls.availablePieces.setValue(null)
+        });
+    }
   }
 
   addOrderRow(): void {
@@ -190,7 +222,8 @@ export class StitchingPageComponent {
       styleAutoId: this.fb.control('', Validators.required),
       size: this.fb.control<GarmentSize>('M', Validators.required),
       availablePieces: this.fb.control<number | null>({ value: null, disabled: true }),
-      piecesTaken: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)])
+      piecesTaken: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
+      ratePerPiece: this.fb.control<number | null>(null, [Validators.min(0)])
     }));
   }
 

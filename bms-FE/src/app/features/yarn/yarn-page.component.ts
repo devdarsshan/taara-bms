@@ -221,26 +221,31 @@ export class YarnPageComponent {
 
     this.submitting.set(true);
     const orderDate = this.toApiDate(value.orderDate);
-    this.yarnApi
-      .createOrder({
-        orderDate: orderDate ?? '',
-        styleAutoId: value.styleAutoId,
-        quantityKgs: value.quantityKgs,
-        supplierNotes: value.supplierNotes?.trim() || null
-      })
+    const payload = {
+      orderDate: orderDate ?? '',
+      styleAutoId: value.styleAutoId,
+      quantityKgs: value.quantityKgs,
+      supplierNotes: value.supplierNotes?.trim() || null
+    };
+
+    const request$ = this.editingOrder()
+      ? this.yarnApi.updateOrder(this.editingOrder()!.autoId, payload)
+      : this.yarnApi.createOrder(payload);
+
+    request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.submitting.set(false);
           this.createVisible.set(false);
-          this.notificationService.success('Yarn order created', 'The yarn order has been saved.');
+          this.notificationService.success('Yarn order saved', 'The yarn order has been saved.');
           this.reloadOrders();
         },
         error: (error) => {
           this.submitting.set(false);
           const message = getApiErrorMessage(error);
           this.createError.set(message);
-          this.notificationService.error('Unable to create yarn order', message);
+          this.notificationService.error('Unable to save yarn order', message);
         }
       });
   }
@@ -353,6 +358,13 @@ export class YarnPageComponent {
     }
 
     return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())).toISOString().slice(0, 10);
+  }
+
+  private formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value ?? 0);
+  }
+}
+(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())).toISOString().slice(0, 10);
   }
 
   private formatNumber(value: number): string {

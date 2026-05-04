@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
@@ -22,6 +22,8 @@ import {
   CuttingCreateRequest,
   CuttingEntry,
   CuttingRowRequest,
+  ExistingStockCreateRequest,
+  ExistingStockResponse,
   InHouseDashboardResponse,
   InHouseDelivery,
   InHouseSplit,
@@ -44,7 +46,7 @@ type CuttingRowForm = FormGroup<{
   size: FormControl<GarmentSize>;
   availableQuantityKgs: FormControl<number | null>;
   quantityUsedKgs: FormControl<number | null>;
-  outputPieces: FormControl<number | null>;
+  ratePerPiece: FormControl<number | null>;
 }>;
 
 @Component({
@@ -83,6 +85,7 @@ export class InHousePageComponent {
   readonly stockRows = signal<InHouseStock[]>([]);
   readonly stitchedStockRows = signal<StitchedStock[]>([]);
   readonly cuttings = signal<CuttingEntry[]>([]);
+  readonly existingStocks = signal<ExistingStockResponse[]>([]);
   readonly styles = signal<Style[]>([]);
   readonly dias = signal<Dia[]>([]);
   readonly loading = signal(true);
@@ -90,6 +93,7 @@ export class InHousePageComponent {
   readonly deliveryDetail = signal<InHouseDelivery | null>(null);
   readonly deliverySplits = signal<InHouseSplit[]>([]);
   readonly deliveryDialogVisible = signal(false);
+  readonly existingStockDialogVisible = signal(false);
   readonly splitError = signal<string | null>(null);
   readonly selectedCuttings = signal<CuttingEntry[]>([]);
 
@@ -100,8 +104,17 @@ export class InHousePageComponent {
     rows: this.fb.array<SplitRowForm>([])
   });
 
+  readonly existingStockForm = this.fb.group({
+    entryDate: this.fb.control<Date | null>(new Date(), Validators.required),
+    diaAutoId: this.fb.control('', Validators.required),
+    styleAutoId: this.fb.control('', Validators.required),
+    quantityKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    notes: this.fb.control('')
+  });
+
   readonly cuttingForm = this.fb.group({
     cuttingDate: this.fb.control<Date | null>(new Date(), Validators.required),
+    totalOutputPieces: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
     notes: this.fb.control(''),
     rows: this.fb.array<CuttingRowForm>([])
   });
@@ -111,7 +124,8 @@ export class InHousePageComponent {
     { label: 'S', value: 'S' },
     { label: 'M', value: 'M' },
     { label: 'L', value: 'L' },
-    { label: 'XL', value: 'XL' }
+    { label: 'XL', value: 'XL' },
+    { label: '2XL', value: 'XXL' }
   ];
 
   readonly styleOptions = computed<OptionItem[]>(() =>
@@ -136,13 +150,17 @@ export class InHousePageComponent {
     ];
   });
 
-  readonly totalKgUsed = computed(() =>
-    this.cuttingRows.controls.reduce((sum, row) => sum + Number(row.controls.quantityUsedKgs.getRawValue() ?? 0), 0)
-  );
+  private readonly cuttingFormValue = toSignal(this.cuttingForm.valueChanges);
 
-  readonly totalOutputPieces = computed(() =>
-    this.cuttingRows.controls.reduce((sum, row) => sum + Number(row.controls.outputPieces.getRawValue() ?? 0), 0)
-  );
+  readonly totalKgUsed = computed(() => {
+    this.cuttingFormValue();
+    return this.cuttingRows.controls.reduce((sum, row) => sum + Number(row.controls.quantityUsedKgs.getRawValue() ?? 0), 0);
+  });
+
+  readonly totalOutputPieces = computed(() => {
+    this.cuttingFormValue();
+    return Number(this.cuttingForm.controls.totalOutputPieces.getRawValue() ?? 0);
+  });
 
   readonly pcsPerKg = computed(() => {
     const totalKg = this.totalKgUsed();
@@ -171,6 +189,7 @@ export class InHousePageComponent {
       dashboard: this.inHouseApi.getDashboard(),
       deliveries: this.inHouseApi.getDeliveries({ page: 0, size: 100, sortField: 'deliveryDate', sortDirection: 'desc', includeDeleted: false }),
       stock: this.inHouseApi.getStock(),
+      existingStocks: this.inHouseApi.getExistingStocks(),
       stitchedStock: this.inHouseApi.getStitchedStock(),
       cuttings: this.inHouseApi.getCuttings({ page: 0, size: 100, sortField: 'cuttingDate', sortDirection: 'desc', includeDeleted: false }),
       styles: this.masterDataApi.getStyleOptions(),
@@ -178,14 +197,24 @@ export class InHousePageComponent {
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ dashboard, deliveries, stock, stitchedStock, cuttings, styles, dias }) => {
+        next: ({ dashboard, deliveries, stock, existingStocks, stitchedStock, cuttings, styles, dias }) => {
           this.dashboard.set(dashboard);
           this.deliveries.set(deliveries.content);
           this.stockRows.set(stock);
+          this.existingStocks.set(existingStocks);
           this.stitchedStockRows.set(stitchedStock);
           this.cuttings.set(cuttings.content);
           this.styles.set(styles);
           this.dias.set(dias);
+          
+          const currentDetail = this.deliveryDetail();
+          if (currentDetail) {
+            const updatedDelivery = deliveries.content.find(d => d.autoId === currentDetail.autoId);
+            if (updatedDelivery) {
+              this.deliveryDetail.set(updatedDelivery);
+            }
+          }
+          
           this.loading.set(false);
         },
         error: (error) => {
@@ -285,15 +314,45 @@ export class InHousePageComponent {
   openCreateCutting(): void {
     this.editingCutting.set(null);
     this.cuttingDialogVisible.set(true);
-    this.cuttingForm.reset({ cuttingDate: new Date(), notes: '' });
+    this.cuttingForm.reset({ cuttingDate: new Date(), totalOutputPieces: null, notes: '' });
     this.cuttingRows.clear();
     this.addCuttingRow();
+  }
+
+  openAddExistingStock(): void {
+    this.existingStockForm.reset({ entryDate: new Date(), diaAutoId: '', styleAutoId: '', quantityKgs: null, notes: '' });
+    this.existingStockDialogVisible.set(true);
+  }
+
+  saveExistingStock(): void {
+    if (this.existingStockForm.invalid) {
+      this.existingStockForm.markAllAsTouched();
+      return;
+    }
+    const value = this.existingStockForm.getRawValue();
+    const payload: ExistingStockCreateRequest = {
+      entryDate: this.toApiDate(value.entryDate ?? new Date()),
+      diaAutoId: value.diaAutoId,
+      styleAutoId: value.styleAutoId,
+      quantityKgs: Number(value.quantityKgs ?? 0),
+      notes: value.notes?.trim() || null
+    };
+    this.inHouseApi.createExistingStock(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notificationService.success('Stock added', 'Existing stock was added successfully.');
+          this.existingStockDialogVisible.set(false);
+          this.loadData();
+        },
+        error: (error) => this.notificationService.error('Unable to add stock', getApiErrorMessage(error))
+      });
   }
 
   openCutting(record: CuttingEntry): void {
     this.editingCutting.set(record);
     this.cuttingDialogVisible.set(true);
-    this.cuttingForm.reset({ cuttingDate: new Date(record.cuttingDate), notes: record.notes ?? '' });
+    this.cuttingForm.reset({ cuttingDate: new Date(record.cuttingDate), totalOutputPieces: record.totalOutputPieces, notes: record.notes ?? '' });
     this.cuttingRows.clear();
     for (const row of record.rows) {
       const group = this.createCuttingRow();
@@ -302,7 +361,7 @@ export class InHousePageComponent {
         styleAutoId: row.style.autoId,
         size: row.size,
         quantityUsedKgs: row.quantityUsedKgs,
-        outputPieces: row.outputPieces,
+        ratePerPiece: row.ratePerPiece ?? null,
         availableQuantityKgs: null
       });
       this.cuttingRows.push(group);
@@ -333,13 +392,14 @@ export class InHousePageComponent {
     const value = this.cuttingForm.getRawValue();
     const payload: CuttingCreateRequest = {
       cuttingDate: this.toApiDate(value.cuttingDate ?? new Date()),
+      totalOutputPieces: Number(value.totalOutputPieces ?? 0),
       notes: value.notes?.trim() || null,
       rows: value.rows.map((row) => ({
         diaAutoId: row.diaAutoId,
         styleAutoId: row.styleAutoId,
         size: row.size,
         quantityUsedKgs: Number(row.quantityUsedKgs ?? 0),
-        outputPieces: row.outputPieces ?? null
+        ratePerPiece: row.ratePerPiece ? Number(row.ratePerPiece) : null
       } satisfies CuttingRowRequest))
     };
     const request$ = this.editingCutting()
@@ -411,7 +471,7 @@ export class InHousePageComponent {
       size: this.fb.control<GarmentSize>('M', Validators.required),
       availableQuantityKgs: this.fb.control<number | null>({ value: null, disabled: true }),
       quantityUsedKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
-      outputPieces: this.fb.control<number | null>(null)
+      ratePerPiece: this.fb.control<number | null>(null, [Validators.min(0)])
     });
     return group;
   }

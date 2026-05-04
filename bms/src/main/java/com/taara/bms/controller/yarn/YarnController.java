@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.taara.bms.dto.yarn.YarnOrderUpdateRequest;
+import org.springframework.web.bind.annotation.PutMapping;
+
 @RestController
 @RequestMapping("/api/yarn")
 public class YarnController {
@@ -48,6 +51,12 @@ public class YarnController {
     public YarnOrderResponse createOrder(@Valid @RequestBody YarnOrderCreateRequest request) {
         log.info("Creating yarn order. styleAutoId='{}', orderDate={}", request.styleAutoId(), request.orderDate());
         return yarnService.createOrder(request);
+    }
+
+    @PutMapping("/orders/{autoId}")
+    public YarnOrderResponse updateOrder(@PathVariable String autoId, @Valid @RequestBody YarnOrderUpdateRequest request) {
+        log.info("Updating yarn order. autoId='{}', styleAutoId='{}', orderDate={}", autoId, request.styleAutoId(), request.orderDate());
+        return yarnService.updateOrder(autoId, request);
     }
 
     @DeleteMapping("/orders/{autoId}")

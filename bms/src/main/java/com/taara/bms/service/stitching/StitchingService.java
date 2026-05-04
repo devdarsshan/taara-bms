@@ -12,6 +12,7 @@ import com.taara.bms.dto.stitching.StitchingOrderStatusUpdateRequest;
 import com.taara.bms.entity.masterdata.StitchingSection;
 import com.taara.bms.entity.masterdata.Style;
 import com.taara.bms.entity.stitching.StitchingDelivery;
+import com.taara.bms.dto.stitching.StitchingOrderUpdateRequest;
 import com.taara.bms.entity.stitching.StitchingDeliveryAllocation;
 import com.taara.bms.entity.stitching.StitchingOrder;
 import com.taara.bms.entity.stitching.StitchingOrderRow;
@@ -138,6 +139,34 @@ public class StitchingService {
         StitchingOrder saved = stitchingOrderRepository.save(order);
         log.info("Created stitching order '{}'", saved.getAutoId());
         return mapper.toOrderResponse(saved, 0);
+    }
+
+
+    @Transactional
+    public StitchingOrderResponse updateOrder(String orderAutoId, StitchingOrderUpdateRequest request) {
+        log.info("Updating stitching order '{}'", orderAutoId);
+        StitchingOrder order = lookupService.getActiveStitchingOrderByAutoId(orderAutoId);
+
+        order.setOrderDate(request.orderDate());
+        order.setExpectedSize(request.expectedSize());
+        order.setExpectedPieces(request.expectedPieces());
+        order.setNotes(blankToNull(request.notes()));
+
+        order.getRows().clear();
+        for (StitchingOrderRowRequest rowRequest : request.rows()) {
+            StitchingOrderRow row = new StitchingOrderRow();
+            row.setStitchingOrder(order);
+            row.setStitchingSection(lookupService.getActiveSectionByAutoId(rowRequest.stitchingSectionAutoId()));
+            row.setStyle(lookupService.getActiveStyleByAutoId(rowRequest.styleAutoId()));
+            row.setSize(rowRequest.size());
+            row.setPiecesTaken(rowRequest.piecesTaken());
+            row.setRatePerPiece(rowRequest.ratePerPiece());
+            order.getRows().add(row);
+        }
+
+        StitchingOrder saved = stitchingOrderRepository.save(order);
+        log.info("Updated stitching order '{}'", saved.getAutoId());
+        return mapper.toOrderResponse(saved, deliveredPieces(saved));
     }
 
     @Transactional(readOnly = true)

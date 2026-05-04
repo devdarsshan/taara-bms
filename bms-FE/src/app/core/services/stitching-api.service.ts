@@ -29,6 +29,10 @@ export class StitchingApiService {
     return this.api.post<StitchingOrder, StitchingOrderCreateRequest>('/stitching/orders', payload);
   }
 
+  updateOrder(autoId: string, payload: StitchingOrderUpdateRequest) {
+    return this.api.put<StitchingOrder, StitchingOrderUpdateRequest>(`/stitching/orders/${autoId}`, payload);
+  }
+
   getAvailableOrderPieces(styleAutoId: string, size: GarmentSize) {
     return this.api.get<StitchingAvailability>('/stitching/available-order-pieces', { styleAutoId, garmentSize: size });
   }

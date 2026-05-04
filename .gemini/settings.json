@@ -1,0 +1,24 @@
+{
+    "mcpServers": {
+        "sequential-thinking": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sequential-thinking"
+            ]
+        },
+        "tavily": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@tavily/mcp-server"
+            ],
+            "env": {
+                "TAVILY_API_KEY": "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"
+            }
+        },
+        "supabase": {
+            "httpUrl": "https://mcp.supabase.com/mcp"
+        }
+    }
+}

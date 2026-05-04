@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.taara.bms.dto.stitching.StitchingOrderUpdateRequest;
+import org.springframework.web.bind.annotation.PutMapping;
+
 @RestController
 @RequestMapping("/api/stitching")
 public class StitchingController {
@@ -58,6 +61,12 @@ public class StitchingController {
         log.info("Creating stitching order. orderDate={}, expectedSize={}, expectedPieces={}, rowCount={}",
                 request.orderDate(), request.expectedSize(), request.expectedPieces(), request.rows().size());
         return stitchingService.createOrder(request);
+    }
+
+    @PutMapping("/orders/{orderAutoId}")
+    public StitchingOrderResponse updateOrder(@PathVariable String orderAutoId, @Valid @RequestBody StitchingOrderUpdateRequest request) {
+        log.info("Updating stitching order. autoId='{}', date={}", orderAutoId, request.orderDate());
+        return stitchingService.updateOrder(orderAutoId, request);
     }
 
     @GetMapping("/available-order-pieces")

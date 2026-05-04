@@ -664,7 +664,8 @@ a {
   .ops-inline-form,
   .ops-inline-grid,
   .ops-inline-grid--six,
-  .ops-inline-grid--seven {
+  .ops-inline-grid--seven,
+  .ops-inline-grid--four {
     grid-template-columns: 1fr;
   }
 }

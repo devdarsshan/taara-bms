@@ -97,6 +97,9 @@
           <td>{{ record.quantityKgs | number: '1.2-2' }} kg</td>
           <td>{{ record.supplierNotes || 'No notes' }}</td>
           <td>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
+          <td (click)="$event.stopPropagation()">
+            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (click)="openEdit(record)"></button>
+          </td>
         </tr>
       </ng-template>
 

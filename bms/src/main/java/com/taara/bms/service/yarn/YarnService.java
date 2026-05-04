@@ -30,6 +30,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.taara.bms.dto.yarn.YarnOrderUpdateRequest;
+import java.util.Optional;
+
 @Service
 public class YarnService {
 
@@ -124,6 +127,43 @@ public class YarnService {
         YarnOrderResponse response = mapper.toResponse(saved);
         log.info("Completed yarn order create flow for '{}'", response.autoId());
         return response;
+    }
+
+    @Transactional
+    public YarnOrderResponse updateOrder(String autoId, YarnOrderUpdateRequest request) {
+        log.info("Updating yarn order '{}'", autoId);
+        YarnOrder yarnOrder = lookupService.getActiveYarnOrderByAutoId(autoId);
+
+        Style style = lookupService.getActiveStyleByAutoId(request.styleAutoId());
+        BigDecimal quantity = BigDecimalUtils.scale(request.quantityKgs());
+        if (quantity.signum() <= 0) {
+            throw new BusinessValidationException("INVALID_YARN_QUANTITY", "Quantity must be positive");
+        }
+
+        yarnOrder.setOrderDate(request.orderDate());
+        yarnOrder.setStyle(style);
+        yarnOrder.setQuantityKgs(quantity);
+        yarnOrder.setSupplierNotes(request.supplierNotes());
+
+        SpinningOrder linkedSpinningOrder = spinningOrderRepository.findByLinkedYarnOrderAndIsDeletedFalse(yarnOrder).orElse(null);
+        if (linkedSpinningOrder != null) {
+            log.info("Updating linked spinning order '{}'", linkedSpinningOrder.getAutoId());
+            linkedSpinningOrder.setDispatchDate(request.orderDate());
+            linkedSpinningOrder.setStyle(style);
+            
+            // Check if the new quantity is sufficient for downstream usage
+            BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantityByStyle(linkedSpinningOrder.getStyle().getId());
+            if (quantity.compareTo(totalReceived) < 0) {
+                throw new BusinessValidationException("QUANTITY_TOO_LOW", "Updated quantity is less than already received spinning deliveries.");
+            }
+            linkedSpinningOrder.setQuantitySentKgs(quantity);
+            linkedSpinningOrder.setFactoryNotes(request.supplierNotes());
+            spinningOrderRepository.save(linkedSpinningOrder);
+        }
+
+        YarnOrder saved = yarnOrderRepository.save(yarnOrder);
+        log.info("Updated yarn order '{}'", saved.getAutoId());
+        return mapper.toResponse(saved);
     }
 
     @Transactional

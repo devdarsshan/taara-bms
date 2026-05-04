@@ -28,6 +28,7 @@ export interface StitchingOrderRow {
   style: StyleRef;
   size: GarmentSize;
   piecesTaken: number;
+  ratePerPiece?: number | null;
 }
 
 export interface StitchingOrder {
@@ -77,6 +78,16 @@ export interface StitchingOrderCreateRequest {
 
 export interface StitchingOrderStatusUpdateRequest {
   status: StitchingOrderStatus;
+}
+
+export interface StitchingDeliveryCreateRequest {
+  deliveryDate: string;
+  stitchingSectionAutoId: string;
+  styleAutoId: string;
+  size: GarmentSize;
+  piecesDelivered: number;
+}
+
 }
 
 export interface StitchingDeliveryCreateRequest {

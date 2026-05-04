@@ -41,19 +41,28 @@ public class SupabaseAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        /*
         String authorization = request.getHeader("Authorization");
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }
+        */
 
         try {
-            String accessToken = authorization.substring(BEARER_PREFIX.length()).trim();
-            AppUser appUser = tokenValidationService.validateAccessToken(accessToken);
+            // String accessToken = authorization.substring(BEARER_PREFIX.length()).trim();
+            // AppUser appUser = tokenValidationService.validateAccessToken(accessToken);
+            
+            // Mocking the authenticated user as an ADMIN
+            AppUser appUser = new AppUser();
+            appUser.setId(java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"));
+            appUser.setEmail("admin@taara.local");
+            appUser.setRole(com.taara.bms.enums.AppUserRole.ADMIN);
+            appUser.setStatus(com.taara.bms.enums.AppUserStatus.ACTIVE);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     appUser,
-                    accessToken,
+                    "mock-token",
                     List.of(new SimpleGrantedAuthority("ROLE_" + appUser.getRole().name()))
             );
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

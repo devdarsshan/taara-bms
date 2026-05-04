@@ -51,7 +51,9 @@
       <section class="ops-panel">
         <div class="ops-panel-header">
           <div><p class="ops-eyebrow">Current Kg</p><h2>Fabric in stock</h2></div>
-          <span class="ops-muted">{{ stockRows().length }} active combinations</span>
+          <div class="ops-toolbar-actions">
+            <button pButton label="Add Existing Stock" icon="pi pi-plus" [outlined]="true" (click)="openAddExistingStock()"></button>
+          </div>
         </div>
         <p-table [value]="stockRows()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '58rem' }" [stripedRows]="true">
           <ng-template pTemplate="header">
@@ -66,6 +68,37 @@
               <td>{{ record.dia.diaValue }}</td>
               <td>{{ record.style.styleName }}</td>
               <td>{{ record.availableQuantityKgs | number: '1.2-2' }} kg</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    </p-tabPanel>
+
+    <p-tabPanel header="Added Stock History">
+      <section class="ops-panel">
+        <div class="ops-panel-header">
+          <div><p class="ops-eyebrow">Manual Additions</p><h2>Added existing stock</h2></div>
+          <span class="ops-muted">{{ existingStocks().length }} records</span>
+        </div>
+        <p-table [value]="existingStocks()" [loading]="loading()" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '58rem' }" [stripedRows]="true">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Id</th>
+              <th>Date</th>
+              <th>Dia</th>
+              <th>Style</th>
+              <th>Qty (kg)</th>
+              <th>Notes</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-record>
+            <tr>
+              <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.entryDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.dia.diaValue }}</td>
+              <td>{{ record.style.styleName }}</td>
+              <td>{{ record.quantityKgs | number: '1.2-2' }} kg</td>
+              <td>{{ record.notes }}</td>
             </tr>
           </ng-template>
         </p-table>
@@ -113,6 +146,12 @@
               <td>{{ record.cuttingDate | date: 'dd MMM yyyy' }}</td>
               <td>{{ record.totalQuantityUsedKgs | number: '1.2-2' }} kg</td>
               <td>{{ record.totalOutputPieces }}</td>
+              <td>
+                @if (record.rows.length > 0) {
+                  {{ record.rows[0].ratePerPiece | number: '1.2-2' }}
+                  @if (record.rows.length > 1) { <span class="ops-muted">...</span> }
+                }
+              </td>
               <td>{{ record.pcsPerKg | number: '1.2-2' }}</td>
               <td><p-tag [severity]="cuttingSeverity(record.status)" [value]="record.status"></p-tag></td>
             </tr>
@@ -210,9 +249,24 @@
   }
 </p-dialog>
 
+<p-dialog [visible]="existingStockDialogVisible()" [modal]="true" [style]="{ width: '40rem', maxWidth: '95vw' }" header="Add Existing Stock" (visibleChange)="existingStockDialogVisible.set($event)">
+  <form [formGroup]="existingStockForm" class="ops-form-grid">
+    <div class="ops-form-field"><label>Entry date <span class="app-required">*</span></label><p-datePicker formControlName="entryDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Dia <span class="app-required">*</span></label><p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Select Dia" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Select Style" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Quantity (kg) <span class="app-required">*</span></label><p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg"></p-inputNumber></div>
+    <div class="ops-form-field ops-form-field--full"><label>Notes</label><textarea pTextarea formControlName="notes" [rows]="2"></textarea></div>
+    <div class="ops-dialog-actions ops-form-field--full">
+      <button pButton type="button" label="Cancel" severity="secondary" [text]="true" (click)="existingStockDialogVisible.set(false)"></button>
+      <button pButton type="button" label="Add Stock" (click)="saveExistingStock()"></button>
+    </div>
+  </form>
+</p-dialog>
+
 <p-dialog [visible]="cuttingDialogVisible()" [modal]="true" [style]="{ width: '72rem', maxWidth: '96vw' }" [header]="editingCutting() ? 'Update Cutting' : 'Create Cutting'" (visibleChange)="cuttingDialogVisible.set($event)">
   <form [formGroup]="cuttingForm" class="ops-form-grid">
     <div class="ops-form-field"><label>Cutting date <span class="app-required">*</span></label><p-datePicker formControlName="cuttingDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Total output pcs <span class="app-required">*</span></label><p-inputNumber formControlName="totalOutputPieces"></p-inputNumber></div>
     <div class="ops-form-field"><label>Notes</label><input pInputText formControlName="notes" /></div>
 
     <div class="ops-form-field ops-form-field--full">
@@ -225,7 +279,7 @@
             <p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" appendTo="body"></p-select>
             <p-inputNumber formControlName="availableQuantityKgs" mode="decimal" [readonly]="true" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg"></p-inputNumber>
             <p-inputNumber formControlName="quantityUsedKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg" placeholder="Used kg"></p-inputNumber>
-            <p-inputNumber formControlName="outputPieces" placeholder="Output pcs"></p-inputNumber>
+            <p-inputNumber formControlName="ratePerPiece" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" placeholder="Rate/pcs"></p-inputNumber>
             <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeCuttingRow($index)"></button>
           </div>
         }

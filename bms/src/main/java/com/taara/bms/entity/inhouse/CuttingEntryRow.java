@@ -50,6 +50,6 @@ public class CuttingEntryRow {
     @Column(name = "quantity_used_kgs", nullable = false, precision = 12, scale = 2)
     private BigDecimal quantityUsedKgs;
 
-    @Column(name = "output_pieces")
-    private Integer outputPieces;
+    @Column(name = "rate_per_piece", precision = 12, scale = 2)
+    private BigDecimal ratePerPiece;
 }

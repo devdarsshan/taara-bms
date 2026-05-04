@@ -54,7 +54,7 @@ export interface CuttingRow {
   style: StyleRef;
   size: GarmentSize;
   quantityUsedKgs: number;
-  outputPieces: number | null;
+  ratePerPiece?: number | null;
 }
 
 export interface CuttingEntry {
@@ -93,18 +93,41 @@ export interface CuttingRowRequest {
   styleAutoId: string;
   size: GarmentSize;
   quantityUsedKgs: number;
-  outputPieces?: number | null;
+  ratePerPiece?: number | null;
 }
 
 export interface CuttingCreateRequest {
   cuttingDate: string;
   rows: CuttingRowRequest[];
+  totalOutputPieces: number;
   notes?: string | null;
 }
 
 export interface CuttingUpdateRequest {
   rows: CuttingRowRequest[];
+  totalOutputPieces: number;
   notes?: string | null;
+}
+
+export interface ExistingStockCreateRequest {
+  entryDate: string;
+  diaAutoId: string;
+  styleAutoId: string;
+  quantityKgs: number;
+  notes?: string | null;
+}
+
+export interface ExistingStockResponse {
+  id: string;
+  autoId: string;
+  entryDate: string;
+  dia: DiaRef;
+  style: StyleRef;
+  quantityKgs: number;
+  notes: string | null;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CuttingAvailability {

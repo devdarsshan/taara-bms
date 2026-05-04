@@ -60,7 +60,8 @@ public class StitchingMapper {
                 referenceMapper.toSectionRef(row.getStitchingSection()),
                 referenceMapper.toStyleRef(row.getStyle()),
                 row.getSize(),
-                row.getPiecesTaken()
+                row.getPiecesTaken(),
+                row.getRatePerPiece()
         );
     }
 }

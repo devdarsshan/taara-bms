@@ -55,6 +55,12 @@
               <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
               <td>{{ record.expectedSize }}</td>
               <td>{{ record.expectedPieces }}</td>
+              <td>
+                @if (record.rows.length > 0) {
+                  {{ record.rows[0].ratePerPiece | number: '1.2-2' }}
+                  @if (record.rows.length > 1) { <span class="ops-muted">...</span> }
+                }
+              </td>
               <td>{{ record.deliveredPieces }}</td>
               <td>{{ record.pendingPieces }}</td>
               <td><p-tag [severity]="severity(record.status)" [value]="record.status"></p-tag></td>
@@ -149,7 +155,7 @@
     </div>
 
     <div class="ops-dialog-actions ops-form-field--full">
-      <button pButton type="button" label="Save Order" (click)="saveOrder()"></button>
+      <button pButton type="button" [label]="editingOrder() ? 'Update Order' : 'Save Order'" (click)="saveOrder()"></button>
     </div>
   </form>
 </p-dialog>
@@ -217,6 +223,11 @@
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.styleName }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Size</span><span>{{ record.size }}</span></div></div>
       <div class="ops-detail-card ops-detail-card--full"><div class="ops-detail-row"><span>Delivered pcs</span><span>{{ record.piecesDelivered }}</span></div></div>
+    </div>
+  }
+</p-dialog>
+ialog>
+s-detail-card ops-detail-card--full"><div class="ops-detail-row"><span>Delivered pcs</span><span>{{ record.piecesDelivered }}</span></div></div>
     </div>
   }
 </p-dialog>

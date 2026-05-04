@@ -12,7 +12,7 @@ export interface DiaRef {
 
 export type StitchingSectionType = 'INTERNAL' | 'EXTERNAL';
 export type SectionProcessType = 'STITCHING' | 'PRINTING';
-export type GarmentSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
+export type GarmentSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 export interface StitchingSectionRef {
   id: string;

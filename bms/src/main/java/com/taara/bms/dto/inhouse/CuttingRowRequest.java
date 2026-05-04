@@ -17,7 +17,7 @@ public record CuttingRowRequest(
         @NotNull(message = "Quantity used is required")
         @DecimalMin(value = "0.01", message = "Quantity used must be positive")
         BigDecimal quantityUsedKgs,
-        @Min(value = 0, message = "Output pieces cannot be negative")
-        Integer outputPieces
+        @DecimalMin(value = "0.00", message = "Rate must be non-negative")
+        BigDecimal ratePerPiece
 ) {
 }

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { PageResponse, QueryOptions } from '../models/api.models';
-import { YarnDashboardResponse, YarnOrder, YarnOrderCreateRequest } from '../models/yarn.models';
+import { YarnDashboardResponse, YarnOrder, YarnOrderCreateRequest, YarnOrderUpdateRequest } from '../models/yarn.models';
 import { ApiService } from './api.service';
 
 @Injectable({
@@ -32,6 +32,14 @@ export class YarnApiService {
       page: query.page,
       size: query.size,
       styleAutoId: query.styleAutoId,
+      fromDate: query.fromDate,
+      toDate: query.toDate,
+      includeDeleted: query.includeDeleted ?? false,
+      sort
+    };
+  }
+}
+
       fromDate: query.fromDate,
       toDate: query.toDate,
       includeDeleted: query.includeDeleted ?? false,

@@ -11,6 +11,8 @@ public record CuttingCreateRequest(
         LocalDate cuttingDate,
         @NotEmpty(message = "At least one cutting row is required")
         List<@Valid CuttingRowRequest> rows,
+        @NotNull(message = "Total output pieces is required")
+        Integer totalOutputPieces,
         String notes
 ) {
 }

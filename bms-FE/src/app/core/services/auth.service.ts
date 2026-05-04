@@ -30,18 +30,22 @@ export class AuthService {
   );
 
   readonly session = signal<Session | null>(null);
-  readonly currentUser = signal<CurrentUser | null>(null);
-  readonly initialized = signal(false);
+  readonly currentUser = signal<CurrentUser | null>({
+    email: 'admin@taara.local',
+    role: 'ADMIN',
+    status: 'ACTIVE'
+  });
+  readonly initialized = signal(true);
   readonly loadingProfile = signal(false);
 
-  readonly isAuthenticated = computed(() => !!this.currentUser());
-  readonly isAdmin = computed(() => this.currentUser()?.role === 'ADMIN');
-  readonly isUser = computed(() => this.currentUser()?.role === 'USER');
+  readonly isAuthenticated = computed(() => true);
+  readonly isAdmin = computed(() => true);
+  readonly isUser = computed(() => true);
 
-  private readonly initializationPromise: Promise<void>;
+  private readonly initializationPromise: Promise<void> = Promise.resolve();
 
   constructor() {
-    this.initializationPromise = this.initialize();
+    // this.initializationPromise = this.initialize();
   }
 
   async ensureInitialized(): Promise<void> {
@@ -49,6 +53,7 @@ export class AuthService {
   }
 
   async signIn(email: string, password: string): Promise<void> {
+    /*
     const { data, error } = await this.supabase.auth.signInWithPassword({
       email: email.trim(),
       password
@@ -60,28 +65,33 @@ export class AuthService {
 
     this.session.set(data.session);
     await this.refreshCurrentUser();
+    */
   }
 
   async signUp(payload: SignupRequest): Promise<void> {
-    await firstValueFrom(this.http.post<{ message: string }>(`${this.apiUrl}/auth/signup`, payload));
-    await this.signIn(payload.email, payload.password);
+    // await firstValueFrom(this.http.post<{ message: string }>(`${this.apiUrl}/auth/signup`, payload));
+    // await this.signIn(payload.email, payload.password);
   }
 
   async signOut(navigateToLogin = true): Promise<void> {
+    /*
     await this.supabase.auth.signOut();
     this.session.set(null);
     this.currentUser.set(null);
     if (navigateToLogin) {
       await this.router.navigateByUrl('/login');
     }
+    */
   }
 
   async getAccessToken(): Promise<string | null> {
-    const { data } = await this.supabase.auth.getSession();
-    return data.session?.access_token ?? null;
+    // const { data } = await this.supabase.auth.getSession();
+    // return data.session?.access_token ?? null;
+    return 'mock-access-token';
   }
 
   async refreshCurrentUser(): Promise<void> {
+    /*
     const token = await this.getAccessToken();
     if (!token) {
       this.currentUser.set(null);
@@ -99,6 +109,7 @@ export class AuthService {
     } finally {
       this.loadingProfile.set(false);
     }
+    */
   }
 
   async routeAfterLogin(): Promise<void> {

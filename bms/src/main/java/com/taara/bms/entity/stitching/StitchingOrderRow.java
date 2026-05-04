@@ -48,4 +48,7 @@ public class StitchingOrderRow {
 
     @Column(name = "pieces_taken", nullable = false)
     private Integer piecesTaken;
+
+    @Column(name = "rate_per_piece", precision = 12, scale = 2)
+    private java.math.BigDecimal ratePerPiece;
 }

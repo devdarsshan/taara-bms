@@ -14,6 +14,7 @@ public record StitchingOrderRowRequest(
         GarmentSize size,
         @NotNull(message = "Pieces taken is required")
         @Min(value = 1, message = "Pieces taken must be positive")
-        Integer piecesTaken
+        Integer piecesTaken,
+        java.math.BigDecimal ratePerPiece
 ) {
 }

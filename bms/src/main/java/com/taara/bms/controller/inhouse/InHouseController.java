@@ -1,6 +1,8 @@
 package com.taara.bms.controller.inhouse;
 
 import com.taara.bms.dto.inhouse.CuttingCreateRequest;
+import com.taara.bms.dto.inhouse.ExistingStockCreateRequest;
+import com.taara.bms.dto.inhouse.ExistingStockResponse;
 import com.taara.bms.dto.inhouse.CuttingAvailabilityResponse;
 import com.taara.bms.dto.inhouse.CuttingResponse;
 import com.taara.bms.dto.inhouse.CuttingUpdateRequest;
@@ -41,17 +43,14 @@ public class InHouseController {
         this.inHouseService = inHouseService;
     }
 
-    @GetMapping("/deliveries")
-    public Page<InHouseDeliveryResponse> getDeliveries(
-            @RequestParam(required = false) String styleAutoId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(defaultValue = "false") boolean includeDeleted,
-            Pageable pageable
-    ) {
-        log.info("Fetching in-house deliveries. styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
-                styleAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
-        return inHouseService.getDeliveries(styleAutoId, fromDate, toDate, includeDeleted, pageable);
+    @PostMapping("/existing-stocks")
+    public ExistingStockResponse createExistingStock(@Valid @RequestBody ExistingStockCreateRequest request) {
+        return inHouseService.createExistingStock(request);
+    }
+
+    @GetMapping("/existing-stocks")
+    public List<ExistingStockResponse> getExistingStocks() {
+        return inHouseService.getExistingStocks();
     }
 
     @GetMapping("/deliveries/{deliveryAutoId}/splits")

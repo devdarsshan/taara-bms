@@ -37,6 +37,7 @@ type OrderRowForm = FormGroup<{
   size: FormControl<GarmentSize>;
   availablePieces: FormControl<number | null>;
   piecesTaken: FormControl<number | null>;
+  ratePerPiece: FormControl<number | null>;
 }>;
 
 @Component({
@@ -85,6 +86,7 @@ export class StitchingPageComponent {
   readonly deliveryAvailability = signal<number | null>(null);
   readonly selectedOrders = signal<StitchingOrder[]>([]);
   readonly selectedDeliveries = signal<StitchingDelivery[]>([]);
+  readonly editingOrder = signal<StitchingOrder | null>(null);
 
   readonly orderForm = this.fb.group({
     orderDate: this.fb.control<Date | null>(new Date(), Validators.required),
@@ -205,7 +207,7 @@ export class StitchingPageComponent {
         piecesTaken: this.fb.control<number | null>(row.piecesTaken, [Validators.required, Validators.min(1)]),
         ratePerPiece: this.fb.control<number | null>(row.ratePerPiece ?? null, [Validators.min(0)])
       });
-      this.orderRows.push(group);
+      this.orderRows.push(group as OrderRowForm);
       
       this.stitchingApi.getAvailableOrderPieces(row.style.autoId, row.size)
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -224,7 +226,7 @@ export class StitchingPageComponent {
       availablePieces: this.fb.control<number | null>({ value: null, disabled: true }),
       piecesTaken: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
       ratePerPiece: this.fb.control<number | null>(null, [Validators.min(0)])
-    }));
+    }) as OrderRowForm);
   }
 
   removeOrderRow(index: number): void {
@@ -267,7 +269,13 @@ export class StitchingPageComponent {
         piecesTaken: Number(row.piecesTaken ?? 0)
       } satisfies StitchingOrderRowRequest))
     };
-    this.stitchingApi.createOrder(payload)
+    
+    const editingOrder = this.editingOrder();
+    const request$ = editingOrder 
+      ? this.stitchingApi.updateOrder(editingOrder.autoId, payload)
+      : this.stitchingApi.createOrder(payload);
+
+    request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {

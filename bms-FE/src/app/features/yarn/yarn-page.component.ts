@@ -1,7 +1,7 @@
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -60,6 +60,7 @@ export class YarnPageComponent {
   readonly createVisible = signal(false);
   readonly submitting = signal(false);
   readonly createError = signal<string | null>(null);
+  readonly editingOrder = signal<YarnOrder | null>(null);
 
   readonly filtersForm = this.fb.group({
     styleAutoId: this.fb.control(''),
@@ -143,7 +144,7 @@ export class YarnPageComponent {
           this.styles.set(styles);
           this.loading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           this.loading.set(false);
           this.notificationService.error('Unable to load yarn workspace', getApiErrorMessage(error));
         }
@@ -164,7 +165,7 @@ export class YarnPageComponent {
           this.totalOrders.set(orders.totalElements);
           this.loading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           this.loading.set(false);
           this.notificationService.error('Unable to refresh yarn data', getApiErrorMessage(error));
         }
@@ -190,11 +191,24 @@ export class YarnPageComponent {
 
   openCreate(): void {
     this.createError.set(null);
+    this.editingOrder.set(null);
     this.createForm.reset({
       orderDate: new Date(),
       styleAutoId: '',
       quantityKgs: null,
       supplierNotes: ''
+    });
+    this.createVisible.set(true);
+  }
+
+  openEdit(record: YarnOrder): void {
+    this.createError.set(null);
+    this.editingOrder.set(record);
+    this.createForm.reset({
+      orderDate: record.orderDate ? new Date(record.orderDate) : null,
+      styleAutoId: record.style.autoId,
+      quantityKgs: record.quantityKgs,
+      supplierNotes: record.supplierNotes || ''
     });
     this.createVisible.set(true);
   }
@@ -228,8 +242,9 @@ export class YarnPageComponent {
       supplierNotes: value.supplierNotes?.trim() || null
     };
 
-    const request$ = this.editingOrder()
-      ? this.yarnApi.updateOrder(this.editingOrder()!.autoId, payload)
+    const editingOrder = this.editingOrder();
+    const request$ = editingOrder
+      ? this.yarnApi.updateOrder(editingOrder.autoId, payload)
       : this.yarnApi.createOrder(payload);
 
     request$
@@ -241,7 +256,7 @@ export class YarnPageComponent {
           this.notificationService.success('Yarn order saved', 'The yarn order has been saved.');
           this.reloadOrders();
         },
-        error: (error) => {
+        error: (error: any) => {
           this.submitting.set(false);
           const message = getApiErrorMessage(error);
           this.createError.set(message);
@@ -271,7 +286,7 @@ export class YarnPageComponent {
               this.notificationService.success('Yarn orders deleted', 'Selected yarn orders were moved out of the active list.');
               this.reloadOrders();
             },
-            error: (error) => {
+            error: (error: any) => {
               this.notificationService.error('Unable to delete yarn orders', getApiErrorMessage(error));
             }
           });
@@ -358,13 +373,6 @@ export class YarnPageComponent {
     }
 
     return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())).toISOString().slice(0, 10);
-  }
-
-  private formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(value ?? 0);
-  }
-}
-(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())).toISOString().slice(0, 10);
   }
 
   private formatNumber(value: number): string {

@@ -8,6 +8,7 @@ import {
   StitchingDeliveryCreateRequest,
   StitchingOrder,
   StitchingOrderCreateRequest,
+  StitchingOrderUpdateRequest,
   StitchingOrderStatus,
   StitchingOrderStatusUpdateRequest
 } from '../models/stitching.models';

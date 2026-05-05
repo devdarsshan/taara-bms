@@ -17,6 +17,10 @@ export class YarnApiService {
     return this.api.post<YarnOrder, YarnOrderCreateRequest>('/yarn/orders', payload);
   }
 
+  updateOrder(autoId: string, payload: YarnOrderUpdateRequest) {
+    return this.api.put<YarnOrder, YarnOrderUpdateRequest>(`/yarn/orders/${autoId}`, payload);
+  }
+
   deleteOrder(autoId: string) {
     return this.api.delete(`/yarn/orders/${autoId}`);
   }
@@ -32,14 +36,6 @@ export class YarnApiService {
       page: query.page,
       size: query.size,
       styleAutoId: query.styleAutoId,
-      fromDate: query.fromDate,
-      toDate: query.toDate,
-      includeDeleted: query.includeDeleted ?? false,
-      sort
-    };
-  }
-}
-
       fromDate: query.fromDate,
       toDate: query.toDate,
       includeDeleted: query.includeDeleted ?? false,

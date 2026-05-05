@@ -76,18 +76,16 @@ export interface StitchingOrderCreateRequest {
   notes?: string | null;
 }
 
+export interface StitchingOrderUpdateRequest {
+  orderDate: string;
+  expectedSize: GarmentSize;
+  expectedPieces: number;
+  rows: StitchingOrderRowRequest[];
+  notes?: string | null;
+}
+
 export interface StitchingOrderStatusUpdateRequest {
   status: StitchingOrderStatus;
-}
-
-export interface StitchingDeliveryCreateRequest {
-  deliveryDate: string;
-  stitchingSectionAutoId: string;
-  styleAutoId: string;
-  size: GarmentSize;
-  piecesDelivered: number;
-}
-
 }
 
 export interface StitchingDeliveryCreateRequest {

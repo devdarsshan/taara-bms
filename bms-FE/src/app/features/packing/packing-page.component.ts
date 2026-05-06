@@ -57,7 +57,7 @@ export class PackingPageComponent {
 
   readonly styleOptions = computed<OptionItem[]>(() => this.styles().map((style) => ({ label: style.styleName, value: style.autoId })));
   readonly sizeOptions: OptionItem<GarmentSize>[] = [
-    { label: 'XS', value: 'XS' }, { label: 'S', value: 'S' }, { label: 'M', value: 'M' }, { label: 'L', value: 'L' }, { label: 'XL', value: 'XL' }, { label: '2XL', value: 'XXL' }
+    { label: 'XS', value: 'XS' }, { label: 'S', value: 'S' }, { label: 'M', value: 'M' }, { label: 'L', value: 'L' }, { label: 'XL', value: 'XL' }, { label: '2XL', value: '2XL' }
   ];
   readonly stockTypeOptions: OptionItem<PackingStockType>[] = [
     { label: 'Plain Stock', value: 'PLAIN' },

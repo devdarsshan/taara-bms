@@ -115,7 +115,7 @@ export class StitchingPageComponent {
     { label: 'M', value: 'M' },
     { label: 'L', value: 'L' },
     { label: 'XL', value: 'XL' },
-    { label: '2XL', value: 'XXL' }
+    { label: '2XL', value: '2XL' }
   ];
 
   readonly styleOptions = computed<OptionItem[]>(() => this.styles().map((style) => ({ label: style.styleName, value: style.autoId })));

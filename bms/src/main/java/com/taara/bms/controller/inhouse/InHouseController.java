@@ -43,6 +43,20 @@ public class InHouseController {
         this.inHouseService = inHouseService;
     }
 
+    @GetMapping("/deliveries")
+    public Page<InHouseDeliveryResponse> getDeliveries(
+            @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) com.taara.bms.enums.SplitStatus status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(defaultValue = "false") boolean includeDeleted,
+            Pageable pageable
+    ) {
+        log.info("Fetching in-house deliveries. styleAutoId='{}', status={}, fromDate={}, toDate={}, includeDeleted={}, page={}",
+                styleAutoId, status, fromDate, toDate, includeDeleted, pageable.getPageNumber());
+        return inHouseService.getDeliveries(styleAutoId, fromDate, toDate, includeDeleted, pageable);
+    }
+
     @PostMapping("/existing-stocks")
     public ExistingStockResponse createExistingStock(@Valid @RequestBody ExistingStockCreateRequest request) {
         return inHouseService.createExistingStock(request);

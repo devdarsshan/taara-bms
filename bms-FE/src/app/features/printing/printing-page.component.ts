@@ -73,6 +73,18 @@ export class PrintingPageComponent {
   readonly selectedOrders = signal<PrintingOrder[]>([]);
   readonly selectedDeliveries = signal<PrintingDelivery[]>([]);
 
+  readonly orderFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
+
+  readonly deliveryFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
+
   readonly orderForm = this.fb.group({
     orderDate: this.fb.control<Date | null>(new Date(), Validators.required),
     printingSectionAutoId: this.fb.control('', Validators.required),
@@ -112,14 +124,38 @@ export class PrintingPageComponent {
 
   constructor() {
     this.loadData();
+    
+    this.orderFilters.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadData());
+    this.deliveryFilters.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadData());
   }
 
   loadData(): void {
+    const orderF = this.orderFilters.getRawValue();
+    const deliveryF = this.deliveryFilters.getRawValue();
+
     this.loading.set(true);
     forkJoin({
       dashboard: this.printingApi.getDashboard(),
-      orders: this.printingApi.getOrders({ page: 0, size: 100, sortField: 'orderDate', sortDirection: 'desc', includeDeleted: false }),
-      deliveries: this.printingApi.getDeliveries({ page: 0, size: 100, sortField: 'deliveryDate', sortDirection: 'desc', includeDeleted: false }),
+      orders: this.printingApi.getOrders({ 
+        page: 0, 
+        size: 100, 
+        sortField: 'orderDate', 
+        sortDirection: 'desc', 
+        includeDeleted: false,
+        styleAutoId: orderF.styleAutoId || undefined,
+        fromDate: orderF.fromDate ? this.toApiDate(orderF.fromDate) : undefined,
+        toDate: orderF.toDate ? this.toApiDate(orderF.toDate) : undefined
+      }),
+      deliveries: this.printingApi.getDeliveries({ 
+        page: 0, 
+        size: 100, 
+        sortField: 'deliveryDate', 
+        sortDirection: 'desc', 
+        includeDeleted: false,
+        styleAutoId: deliveryF.styleAutoId || undefined,
+        fromDate: deliveryF.fromDate ? this.toApiDate(deliveryF.fromDate) : undefined,
+        toDate: deliveryF.toDate ? this.toApiDate(deliveryF.toDate) : undefined
+      }),
       styles: this.masterDataApi.getStyleOptions(),
       sections: this.masterDataApi.getSectionOptions('PRINTING')
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

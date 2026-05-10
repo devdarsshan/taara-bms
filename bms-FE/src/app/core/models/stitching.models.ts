@@ -29,6 +29,7 @@ export interface StitchingOrderRow {
   size: GarmentSize;
   piecesTaken: number;
   ratePerPiece?: number | null;
+  totalPrice?: number | null;
 }
 
 export interface StitchingOrder {
@@ -62,10 +63,11 @@ export interface StitchingDelivery {
 }
 
 export interface StitchingOrderRowRequest {
-  stitchingSectionAutoId: string;
+  stitchingSectionAutoId?: string;
   styleAutoId: string;
   size: GarmentSize;
   piecesTaken: number;
+  ratePerPiece?: number | null;
 }
 
 export interface StitchingOrderCreateRequest {

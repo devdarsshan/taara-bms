@@ -20,7 +20,11 @@
           <span class="ops-muted">{{ orders().length }} active records</span>
         </div>
         <div class="ops-toolbar">
-          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="orderFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="orderFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="orderFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedOrders().length" (click)="confirmDeleteOrders()"></button>
             <button pButton label="Add Order" icon="pi pi-plus" (click)="openCreateOrder()"></button>
@@ -40,6 +44,7 @@
             <tr>
               <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
               <th>Id</th>
+              <th>Order Date</th>
               <th>Section</th>
               <th>Style</th>
               <th>Size</th>
@@ -52,6 +57,7 @@
             <tr (click)="openOrderDetail(record)">
               <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
               <td class="ops-table-id">{{ record.autoId }}</td>
+              <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
               <td>{{ record.printingSection.sectionName }}</td>
               <td>{{ record.style.styleName }}</td>
               <td>{{ record.size }}</td>
@@ -71,7 +77,11 @@
           <span class="ops-muted">{{ deliveries().length }} active records</span>
         </div>
         <div class="ops-toolbar">
-          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="orderFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="orderFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="orderFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedDeliveries().length" (click)="confirmDeleteDeliveries()"></button>
             <button pButton label="Add Delivery" icon="pi pi-plus" (click)="openCreateDelivery()"></button>

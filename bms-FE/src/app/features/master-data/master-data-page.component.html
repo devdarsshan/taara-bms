@@ -288,7 +288,15 @@
               <td>
                 <p-tag [value]="section.type === 'INTERNAL' ? 'Internal' : 'External'" [severity]="section.type === 'INTERNAL' ? 'info' : 'warn'"></p-tag>
               </td>
-              <td>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</td>
+              <td>
+                @if (section.processType === 'PRINTING') {
+                  Printing
+                } @else if (section.processType === 'KNITTING') {
+                  Knitting
+                } @else {
+                  Stitching
+                }
+              </td>
               <td>
                 <p-tag
                   [value]="section.isDeleted ? 'Deleted' : 'Active'"
@@ -525,7 +533,20 @@
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Name</span><span>{{ section.sectionName }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Type</span><span>{{ section.type === 'INTERNAL' ? 'Internal' : 'External' }}</span></div></div>
-      <div class="ops-detail-card"><div class="ops-detail-row"><span>Process</span><span>{{ section.processType === 'PRINTING' ? 'Printing' : 'Stitching' }}</span></div></div>
+      <div class="ops-detail-card">
+        <div class="ops-detail-row">
+          <span>Process</span>
+          <span>
+            @if (section.processType === 'PRINTING') {
+              Printing
+            } @else if (section.processType === 'KNITTING') {
+              Knitting
+            } @else {
+              Stitching
+            }
+          </span>
+        </div>
+      </div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ section.isDeleted ? 'Deleted' : 'Active' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Updated</span><span>{{ section.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span></div></div>
     </div>

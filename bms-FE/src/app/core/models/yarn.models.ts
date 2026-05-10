@@ -1,4 +1,4 @@
-import { StyleRef } from './common.models';
+import { StitchingSectionRef, StyleRef } from './common.models';
 
 export interface YarnDashboardResponse {
   totalYarnOrdered: number;
@@ -12,6 +12,7 @@ export interface YarnOrder {
   orderDate: string;
   style: StyleRef;
   quantityKgs: number;
+  stitchingSection?: StitchingSectionRef;
   supplierNotes: string | null;
   isDeleted: boolean;
   createdAt: string;
@@ -21,6 +22,7 @@ export interface YarnOrder {
 export interface YarnOrderCreateRequest {
   orderDate: string;
   styleAutoId: string;
+  stitchingSectionAutoId?: string;
   quantityKgs: number;
   supplierNotes?: string | null;
 }
@@ -28,6 +30,7 @@ export interface YarnOrderCreateRequest {
 export interface YarnOrderUpdateRequest {
   orderDate: string;
   styleAutoId: string;
+  stitchingSectionAutoId?: string;
   quantityKgs: number;
   supplierNotes?: string | null;
 }

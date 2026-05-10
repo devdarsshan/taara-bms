@@ -35,6 +35,10 @@ export class InHouseApiService {
     return this.api.post<InHouseSplit[], InHouseSplitBatchRequest>(`/inhouse/deliveries/${deliveryAutoId}/splits`, payload);
   }
 
+  updateSplit(deliveryAutoId: string, splitAutoId: string, payload: { diaAutoId: string; quantityKgs: number }) {
+    return this.api.patch<InHouseSplit, { diaAutoId: string; quantityKgs: number }>(`/inhouse/deliveries/${deliveryAutoId}/splits/${splitAutoId}`, payload);
+  }
+
   deleteSplit(deliveryAutoId: string, splitAutoId: string) {
     return this.api.delete(`/inhouse/deliveries/${deliveryAutoId}/splits/${splitAutoId}`);
   }

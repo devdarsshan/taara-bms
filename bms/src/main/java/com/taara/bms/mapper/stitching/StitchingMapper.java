@@ -55,13 +55,15 @@ public class StitchingMapper {
     }
 
     public StitchingOrderRowResponse toOrderRowResponse(StitchingOrderRow row) {
+        java.math.BigDecimal totalPrice = row.getRatePerPiece() != null ? row.getRatePerPiece().multiply(java.math.BigDecimal.valueOf(row.getPiecesTaken())) : null;
         return new StitchingOrderRowResponse(
                 row.getId(),
                 referenceMapper.toSectionRef(row.getStitchingSection()),
                 referenceMapper.toStyleRef(row.getStyle()),
                 row.getSize(),
                 row.getPiecesTaken(),
-                row.getRatePerPiece()
+                row.getRatePerPiece(),
+                totalPrice
         );
     }
 }

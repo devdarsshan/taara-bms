@@ -20,7 +20,11 @@
           <span class="ops-muted">{{ orders().length }} active records</span>
         </div>
         <div class="ops-toolbar">
-          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="orderFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="orderFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="orderFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedOrders().length" (click)="confirmDeleteOrders()"></button>
             <button pButton label="Add Order" icon="pi pi-plus" (click)="openCreateOrder()"></button>
@@ -41,20 +45,19 @@
               <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
               <th>Id</th>
               <th>Date</th>
-              <th>Expected Size</th>
-              <th>Expected Pcs</th>
+              <th>Section</th>
               <th>Delivered</th>
               <th>Pending</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-record>
-            <tr (click)="openOrderDetail(record)">
+            <tr (click)="openEditOrder(record)" class="cursor-pointer">
               <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
               <td class="ops-table-id">{{ record.autoId }}</td>
               <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
-              <td>{{ record.expectedSize }}</td>
-              <td>{{ record.expectedPieces }}</td>
+              <td>{{ record.rows[0]?.stitchingSection?.sectionName || 'N/A' }}</td>
               <td>{{ record.deliveredPieces }}</td>
               <td>{{ record.pendingPieces }}</td>
               <td><p-tag [severity]="severity(record.status)" [value]="record.status"></p-tag></td>
@@ -71,7 +74,11 @@
           <span class="ops-muted">{{ deliveries().length }} active records</span>
         </div>
         <div class="ops-toolbar">
-          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="orderFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="orderFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="orderFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedDeliveries().length" (click)="confirmDeleteDeliveries()"></button>
             <button pButton label="Add Delivery" icon="pi pi-plus" (click)="openCreateDelivery()"></button>
@@ -115,23 +122,22 @@
   </p-tabView>
 </section>
 
-<p-dialog [visible]="orderDialogVisible()" [modal]="true" [style]="{ width: '74rem', maxWidth: '96vw' }" header="Create Stitching Order" (visibleChange)="orderDialogVisible.set($event)">
+<p-dialog [visible]="orderDialogVisible()" [modal]="true" [style]="{ width: '74rem', maxWidth: '96vw' }" [header]="editingOrder() ? 'Update Stitching Order' : 'Create Stitching Order'" (visibleChange)="orderDialogVisible.set($event)">
   <form [formGroup]="orderForm" class="ops-form-grid">
     <div class="ops-form-field"><label>Order date <span class="app-required">*</span></label><p-datePicker formControlName="orderDate" appendTo="body"></p-datePicker></div>
-    <div class="ops-form-field"><label>Expected size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="expectedSize" optionLabel="label" optionValue="value" appendTo="body"></p-select></div>
-    <div class="ops-form-field"><label>Expected pcs <span class="app-required">*</span></label><p-inputNumber formControlName="expectedPieces"></p-inputNumber></div>
-    <div class="ops-form-field"><label>Notes</label><input pInputText formControlName="notes" /></div>
+    <div class="ops-form-field"><label>Section <span class="app-required">*</span></label><p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Select section" appendTo="body"></p-select></div>
+    <div class="ops-form-field ops-form-field--full"><label>Notes</label><input pInputText formControlName="notes" /></div>
 
     <div class="ops-form-field ops-form-field--full">
       <label>Order rows <span class="app-required">*</span></label>
       <div formArrayName="rows" class="ops-line-stack">
         @for (row of orderRows.controls; track $index) {
           <div class="ops-inline-form ops-inline-grid ops-inline-grid--six" [formGroupName]="$index">
-            <p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Section" appendTo="body"></p-select>
             <p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="onOrderRowComboChange($index)" appendTo="body"></p-select>
             <p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" (onChange)="onOrderRowComboChange($index)" appendTo="body"></p-select>
             <p-inputNumber formControlName="availablePieces" [readonly]="true" placeholder="Available pcs"></p-inputNumber>
             <p-inputNumber formControlName="piecesTaken" placeholder="Pieces taken"></p-inputNumber>
+            <p-inputNumber formControlName="ratePerPiece" mode="currency" currency="INR" placeholder="Rate / pcs"></p-inputNumber>
             <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeOrderRow($index)"></button>
           </div>
         }
@@ -146,6 +152,7 @@
 
     <div class="ops-detail-grid ops-form-field--full">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Pieces Taken</span><span>{{ totalTaken() }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Cost (Calculated)</span><span>{{ totalCost() | currency: 'INR' }}</span></div></div>
     </div>
 
     <div class="ops-dialog-actions ops-form-field--full">
@@ -173,8 +180,7 @@
     <div class="ops-page">
       <div class="ops-detail-grid">
         <div class="ops-detail-card"><div class="ops-detail-row"><span>Order date</span><span>{{ record.orderDate | date: 'dd MMM yyyy' }}</span></div></div>
-        <div class="ops-detail-card"><div class="ops-detail-row"><span>Expected size</span><span>{{ record.expectedSize }}</span></div></div>
-        <div class="ops-detail-card"><div class="ops-detail-row"><span>Expected pcs</span><span>{{ record.expectedPieces }}</span></div></div>
+        <div class="ops-detail-card"><div class="ops-detail-row"><span>Delivered pcs</span><span>{{ record.deliveredPieces }}</span></div></div>
         <div class="ops-detail-card"><div class="ops-detail-row"><span>Pending pcs</span><span>{{ record.pendingPieces }}</span></div></div>
       </div>
 
@@ -185,6 +191,8 @@
             <th>Style</th>
             <th>Size</th>
             <th>Pieces Taken</th>
+            <th>Rate / pcs</th>
+            <th>Total Price</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-row>
@@ -193,6 +201,8 @@
             <td>{{ row.style.styleName }}</td>
             <td>{{ row.size }}</td>
             <td>{{ row.piecesTaken }}</td>
+            <td>{{ row.ratePerPiece ? (row.ratePerPiece | currency:'INR') : '-' }}</td>
+            <td>{{ row.totalPrice ? (row.totalPrice | currency:'INR') : '-' }}</td>
           </tr>
         </ng-template>
       </p-table>
@@ -217,6 +227,6 @@
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.styleName }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Size</span><span>{{ record.size }}</span></div></div>
       <div class="ops-detail-card ops-detail-card--full"><div class="ops-detail-row"><span>Delivered pcs</span><span>{{ record.piecesDelivered }}</span></div></div>
-    </div>
-  }
-</p-dialog>
+      </div>
+      }
+      </p-dialog>

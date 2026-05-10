@@ -43,6 +43,9 @@ public class CuttingEntry extends BaseEntity {
     @Column(nullable = false, length = 30)
     private CuttingStatus status;
 
+    @Column(name = "total_price", precision = 12, scale = 2)
+    private BigDecimal totalPrice;
+
     @Column(columnDefinition = "text")
     private String notes;
 

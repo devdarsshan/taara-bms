@@ -57,6 +57,7 @@
               <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
               <th pSortableColumn="dispatchDate">Dispatch Date <p-sortIcon field="dispatchDate"></p-sortIcon></th>
               <th>Style</th>
+              <th>Section</th>
               <th pSortableColumn="quantitySentKgs">Quantity <p-sortIcon field="quantitySentKgs"></p-sortIcon></th>
               <th>Linked Yarn Order</th>
               <th>Type</th>
@@ -69,6 +70,7 @@
               <td class="ops-table-id">{{ record.autoId }}</td>
               <td>{{ record.dispatchDate | date: 'dd MMM yyyy' }}</td>
               <td>{{ record.style.autoId }} - {{ record.style.styleName }}</td>
+              <td>{{ record.stitchingSection?.sectionName || 'N/A' }}</td>
               <td>{{ record.quantitySentKgs | number: '1.2-2' }} kg</td>
               <td>{{ record.linkedYarnOrderAutoId || 'Manual' }}</td>
               <td>{{ record.autoCreated ? 'Auto-created' : 'Manual' }}</td>
@@ -87,7 +89,10 @@
         </div>
         <div class="ops-toolbar">
           <div class="ops-toolbar-filters">
-            <p-select [options]="styleOptions()" [formControl]="deliveryFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Search by style Id" appendTo="body"></p-select>
+            <p-select [options]="styleOptions()" [formControl]="orderFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" appendTo="body" [showClear]="true"></p-select>
+            <p-select [options]="sectionOptions()" [formControl]="orderFilters.controls.sectionAutoId" optionLabel="label" optionValue="value" placeholder="Section" appendTo="body" [showClear]="true"></p-select>
+            <p-datePicker [formControl]="orderFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="orderFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
           </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedDeliveries().length" (click)="confirmDeleteDeliveries()"></button>
@@ -122,9 +127,11 @@
               <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
               <th pSortableColumn="deliveryDate">Delivery Date <p-sortIcon field="deliveryDate"></p-sortIcon></th>
               <th>Style</th>
+              <th>Section</th>
               <th>Actual Qty</th>
               <th>Buffer Qty</th>
-              <th>Final Qty</th>
+              <th>Total Price</th>
+              <th>Status</th>
               <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
             </tr>
           </ng-template>
@@ -134,9 +141,15 @@
               <td class="ops-table-id">{{ record.autoId }}</td>
               <td>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</td>
               <td>{{ record.style.autoId }} - {{ record.style.styleName }}</td>
+              <td>{{ record.stitchingSection?.sectionName || 'N/A' }}</td>
               <td>{{ record.actualQuantityKgs | number: '1.2-2' }} kg</td>
               <td>{{ record.bufferQuantityKgs | number: '1.2-2' }} kg</td>
-              <td>{{ record.finalQuantityKgs | number: '1.2-2' }} kg</td>
+              <td>{{ record.totalPrice | currency: 'INR' }}</td>
+              <td>
+                <span [class]="'ops-status-badge ops-status-badge--' + (record.paymentStatus === 'PAID' ? 'success' : record.paymentStatus === 'PARTIAL' ? 'warning' : 'danger')">
+                  {{ record.paymentStatus || 'UNPAID' }}
+                </span>
+              </td>
               <td>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
             </tr>
           </ng-template>
@@ -153,6 +166,7 @@
     }
     <div class="ops-form-field"><label>Dispatch date <span class="app-required">*</span></label><p-datePicker formControlName="dispatchDate" appendTo="body" [class.app-control-invalid]="isInvalid(createOrderForm.controls.dispatchDate)"></p-datePicker></div>
     <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" appendTo="body" [class.app-control-invalid]="isInvalid(createOrderForm.controls.styleAutoId)"></p-select></div>
+    <div class="ops-form-field"><label>Knitting Section</label><p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Select section" [showClear]="true" appendTo="body"></p-select></div>
     <div class="ops-form-field"><label>Linked yarn order</label><p-select [options]="yarnOrderOptions()" formControlName="linkedYarnOrderAutoId" optionLabel="label" optionValue="value" [showClear]="true" appendTo="body"></p-select></div>
     <div class="ops-form-field"><label>Quantity sent (kg) <span class="app-required">*</span></label><p-inputNumber formControlName="quantitySentKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [class.app-control-invalid]="isInvalid(createOrderForm.controls.quantitySentKgs)"></p-inputNumber></div>
     <div class="ops-form-field ops-form-field--full"><label>Factory notes</label><textarea pTextarea formControlName="factoryNotes" rows="4"></textarea></div>
@@ -170,8 +184,14 @@
     }
     <div class="ops-form-field"><label>Delivery date <span class="app-required">*</span></label><p-datePicker formControlName="deliveryDate" appendTo="body" [class.app-control-invalid]="isInvalid(createDeliveryForm.controls.deliveryDate)"></p-datePicker></div>
     <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" appendTo="body" [class.app-control-invalid]="isInvalid(createDeliveryForm.controls.styleAutoId)"></p-select></div>
+    <div class="ops-form-field"><label>Knitting Section</label><p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Select section" [showClear]="true" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Available Yarn (kg)</label><p-inputNumber [ngModel]="availableYarnKgs()" [ngModelOptions]="{standalone: true}" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [disabled]="true" suffix=" kg"></p-inputNumber></div>
     <div class="ops-form-field"><label>Actual quantity (kg) <span class="app-required">*</span></label><p-inputNumber formControlName="actualQuantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [class.app-control-invalid]="isInvalid(createDeliveryForm.controls.actualQuantityKgs)"></p-inputNumber></div>
     <div class="ops-form-field"><label>Buffer quantity (kg)</label><p-inputNumber formControlName="bufferQuantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Price / Kg</label><p-inputNumber formControlName="pricePerKg" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Paid Amount</label><p-inputNumber formControlName="paidAmount" mode="currency" currency="INR" [minFractionDigits]="2"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Total Price</label><p-inputNumber [ngModel]="totalPrice()" [ngModelOptions]="{standalone: true}" mode="currency" currency="INR" [disabled]="true"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Balance</label><p-inputNumber [ngModel]="balanceAmount()" [ngModelOptions]="{standalone: true}" mode="currency" currency="INR" [disabled]="true"></p-inputNumber></div>
     <div class="ops-form-field ops-form-field--full"><label>Notes</label><textarea pTextarea formControlName="notes" rows="4"></textarea></div>
     <div class="ops-dialog-actions ops-form-field--full">
       <button pButton type="button" label="Cancel" severity="secondary" [text]="true" [disabled]="deliverySubmitting()" (click)="closeDeliveryCreateDialog()"></button>
@@ -185,6 +205,7 @@
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Dispatch date</span><span>{{ record.dispatchDate | date: 'dd MMM yyyy' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.autoId }} - {{ record.style.styleName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Section</span><span>{{ record.stitchingSection?.sectionName || 'N/A' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Quantity</span><span>{{ record.quantitySentKgs | number: '1.2-2' }} kg</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Linked yarn order</span><span>{{ record.linkedYarnOrderAutoId || 'Manual order' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Type</span><span>{{ record.autoCreated ? 'Auto-created' : 'Manual order' }}</span></div></div>
@@ -197,9 +218,14 @@
     <div class="ops-detail-grid">
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Delivery date</span><span>{{ record.deliveryDate | date: 'dd MMM yyyy' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Style</span><span>{{ record.style.autoId }} - {{ record.style.styleName }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Section</span><span>{{ record.stitchingSection?.sectionName || 'N/A' }}</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Actual quantity</span><span>{{ record.actualQuantityKgs | number: '1.2-2' }} kg</span></div></div>
-      <div class="ops-detail-card"><div class="ops-detail-row"><span>Buffer quantity</span><span>{{ record.bufferQuantityKgs | number: '1.2-2' }} kg</span></div></div>
       <div class="ops-detail-card"><div class="ops-detail-row"><span>Final quantity</span><span>{{ record.finalQuantityKgs | number: '1.2-2' }} kg</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Price / Kg</span><span>{{ record.pricePerKg ? (record.pricePerKg | currency:'INR') : '-' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Total Price</span><span>{{ record.totalPrice ? (record.totalPrice | currency:'INR') : '-' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Paid Amount</span><span>{{ record.paidAmount ? (record.paidAmount | currency:'INR') : '-' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Balance</span><span>{{ record.balanceAmount ? (record.balanceAmount | currency:'INR') : '-' }}</span></div></div>
+      <div class="ops-detail-card"><div class="ops-detail-row"><span>Status</span><span>{{ record.paymentStatus || 'N/A' }}</span></div></div>
     </div>
   }
 </p-dialog>

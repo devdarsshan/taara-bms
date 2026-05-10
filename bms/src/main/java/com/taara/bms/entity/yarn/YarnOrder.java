@@ -34,6 +34,10 @@ public class YarnOrder extends BaseEntity {
     @Column(name = "quantity_kgs", nullable = false, precision = 12, scale = 2)
     private BigDecimal quantityKgs;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stitching_section_id")
+    private com.taara.bms.entity.masterdata.StitchingSection stitchingSection;
+
     @Column(name = "supplier_notes", columnDefinition = "text")
     private String supplierNotes;
 }

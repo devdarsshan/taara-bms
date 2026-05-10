@@ -14,6 +14,7 @@ public record YarnOrderCreateRequest(
         @NotNull(message = "Quantity is required")
         @DecimalMin(value = "0.01", message = "Quantity must be positive")
         BigDecimal quantityKgs,
+        String stitchingSectionAutoId,
         String supplierNotes
 ) {
 }

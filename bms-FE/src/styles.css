@@ -610,6 +610,14 @@ a {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.ops-inline-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ops-inline-grid--five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .ops-inline-grid--six {
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }

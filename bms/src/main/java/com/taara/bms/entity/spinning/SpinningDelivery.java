@@ -40,6 +40,26 @@ public class SpinningDelivery extends BaseEntity {
     @Column(name = "final_quantity_kgs", nullable = false, precision = 12, scale = 2)
     private BigDecimal finalQuantityKgs;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stitching_section_id")
+    private com.taara.bms.entity.masterdata.StitchingSection stitchingSection;
+
+    @Column(name = "price_per_kg", precision = 12, scale = 2)
+    private BigDecimal pricePerKg;
+
+    @Column(name = "total_price", precision = 12, scale = 2)
+    private BigDecimal totalPrice;
+
+    @Column(name = "paid_amount", precision = 12, scale = 2)
+    private BigDecimal paidAmount;
+
+    @Column(name = "balance_amount", precision = 12, scale = 2)
+    private BigDecimal balanceAmount;
+
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "payment_status", length = 50)
+    private com.taara.bms.enums.PaymentStatus paymentStatus;
+
     @Column(columnDefinition = "text")
     private String notes;
 }

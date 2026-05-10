@@ -20,6 +20,9 @@ public class ReferenceMapper {
     }
 
     public StitchingSectionRefResponse toSectionRef(StitchingSection section) {
+        if (section == null) {
+            return null;
+        }
         return new StitchingSectionRefResponse(
                 section.getId(),
                 section.getAutoId(),

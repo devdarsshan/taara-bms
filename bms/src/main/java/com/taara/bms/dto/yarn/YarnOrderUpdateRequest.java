@@ -17,6 +17,8 @@ public record YarnOrderUpdateRequest(
         @DecimalMin(value = "0.01", message = "Quantity must be greater than zero")
         BigDecimal quantityKgs,
 
+        String stitchingSectionAutoId,
+
         String supplierNotes
 ) {
 }

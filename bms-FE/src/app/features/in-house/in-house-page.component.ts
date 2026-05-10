@@ -1,7 +1,7 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormControl, FormGroup, FormsModule, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -54,6 +54,8 @@ type CuttingRowForm = FormGroup<{
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    FormsModule,
+    CurrencyPipe,
     DatePipe,
     DecimalPipe,
     ButtonModule,
@@ -96,6 +98,19 @@ export class InHousePageComponent {
   readonly existingStockDialogVisible = signal(false);
   readonly splitError = signal<string | null>(null);
   readonly selectedCuttings = signal<CuttingEntry[]>([]);
+  readonly editingSplitId = signal<string | null>(null);
+
+  readonly deliveryFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
+
+  readonly cuttingFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
 
   readonly cuttingDialogVisible = signal(false);
   readonly editingCutting = signal<CuttingEntry | null>(null);
@@ -115,6 +130,9 @@ export class InHousePageComponent {
   readonly cuttingForm = this.fb.group({
     cuttingDate: this.fb.control<Date | null>(new Date(), Validators.required),
     totalOutputPieces: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
+    styleAutoId: this.fb.control('', Validators.required),
+    size: this.fb.control<GarmentSize>('M', Validators.required),
+    ratePerPiece: this.fb.control<number | null>(null, [Validators.min(0)]),
     notes: this.fb.control(''),
     rows: this.fb.array<CuttingRowForm>([])
   });
@@ -135,6 +153,16 @@ export class InHousePageComponent {
   readonly diaOptions = computed<OptionItem[]>(() =>
     this.dias().map((dia) => ({ label: dia.diaValue, value: dia.autoId }))
   );
+
+  getAvailableDiaOptions(index: number): OptionItem[] {
+    const allOptions = this.diaOptions();
+    const rows = this.cuttingRows.getRawValue();
+    const selectedDias = rows
+      .map((r, i) => i !== index ? r.diaAutoId : null)
+      .filter((id): id is string => !!id);
+    
+    return allOptions.filter(opt => !selectedDias.includes(opt.value));
+  }
 
   readonly summaryCards = computed(() => {
     const dashboard = this.dashboard();
@@ -162,6 +190,13 @@ export class InHousePageComponent {
     return Number(this.cuttingForm.controls.totalOutputPieces.getRawValue() ?? 0);
   });
 
+  readonly totalCost = computed(() => {
+    this.cuttingFormValue();
+    const pcs = this.totalOutputPieces();
+    const rate = Number(this.cuttingForm.controls.ratePerPiece.getRawValue() ?? 0);
+    return pcs * rate;
+  });
+
   readonly pcsPerKg = computed(() => {
     const totalKg = this.totalKgUsed();
     const totalPieces = this.totalOutputPieces();
@@ -181,17 +216,55 @@ export class InHousePageComponent {
 
   constructor() {
     this.loadData();
+    
+    this.deliveryFilters.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadData());
+    this.cuttingFilters.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.loadData());
+
+    this.cuttingForm.controls.styleAutoId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      for (const row of this.cuttingRows.controls) {
+        this.refreshRowAvailability(row);
+      }
+    });
   }
 
   loadData(): void {
+    const deliveryF = this.deliveryFilters.getRawValue();
+    const cuttingF = this.cuttingFilters.getRawValue();
+
     this.loading.set(true);
     forkJoin({
-      dashboard: this.inHouseApi.getDashboard(),
-      deliveries: this.inHouseApi.getDeliveries({ page: 0, size: 100, sortField: 'deliveryDate', sortDirection: 'desc', includeDeleted: false }),
-      stock: this.inHouseApi.getStock(),
+      dashboard: this.inHouseApi.getDashboard({
+        styleAutoId: deliveryF.styleAutoId || undefined,
+        fromDate: deliveryF.fromDate ? this.toApiDate(deliveryF.fromDate) : undefined,
+        toDate: deliveryF.toDate ? this.toApiDate(deliveryF.toDate) : undefined
+      }),
+      deliveries: this.inHouseApi.getDeliveries({ 
+        page: 0, 
+        size: 100, 
+        sortField: 'deliveryDate', 
+        sortDirection: 'desc', 
+        includeDeleted: false,
+        styleAutoId: deliveryF.styleAutoId || undefined,
+        fromDate: deliveryF.fromDate ? this.toApiDate(deliveryF.fromDate) : undefined,
+        toDate: deliveryF.toDate ? this.toApiDate(deliveryF.toDate) : undefined
+      }),
+      stock: this.inHouseApi.getStock({
+        styleAutoId: deliveryF.styleAutoId || undefined
+      }),
       existingStocks: this.inHouseApi.getExistingStocks(),
-      stitchedStock: this.inHouseApi.getStitchedStock(),
-      cuttings: this.inHouseApi.getCuttings({ page: 0, size: 100, sortField: 'cuttingDate', sortDirection: 'desc', includeDeleted: false }),
+      stitchedStock: this.inHouseApi.getStitchedStock({
+        styleAutoId: cuttingF.styleAutoId || undefined
+      }),
+      cuttings: this.inHouseApi.getCuttings({ 
+        page: 0, 
+        size: 100, 
+        sortField: 'cuttingDate', 
+        sortDirection: 'desc', 
+        includeDeleted: false,
+        styleAutoId: cuttingF.styleAutoId || undefined,
+        fromDate: cuttingF.fromDate ? this.toApiDate(cuttingF.fromDate) : undefined,
+        toDate: cuttingF.toDate ? this.toApiDate(cuttingF.toDate) : undefined
+      }),
       styles: this.masterDataApi.getStyleOptions(),
       dias: this.masterDataApi.getDiaOptions()
     })
@@ -217,7 +290,7 @@ export class InHousePageComponent {
           
           this.loading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           this.loading.set(false);
           this.notificationService.error('Unable to load in-house module', getApiErrorMessage(error));
         }
@@ -233,7 +306,20 @@ export class InHousePageComponent {
     this.inHouseApi.getSplits(record.autoId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (splits) => this.deliverySplits.set(splits),
+        next: (splits) => {
+          this.deliverySplits.set(splits);
+          this.splitRows.clear();
+          if (splits.length > 0) {
+            splits.forEach(split => {
+              this.splitRows.push(this.fb.group({
+                diaAutoId: this.fb.control(split.dia.autoId, Validators.required),
+                quantityKgs: this.fb.control<number | null>(split.quantityKgs, [Validators.required, Validators.min(0.01)])
+              }));
+            });
+          } else {
+            this.addSplitRow();
+          }
+        },
         error: (error) => this.notificationService.error('Unable to load splits', getApiErrorMessage(error))
       });
   }
@@ -311,10 +397,37 @@ export class InHousePageComponent {
     });
   }
 
+  startSplitEdit(split: InHouseSplit): void {
+    this.editingSplitId.set(split.autoId);
+  }
+
+  cancelSplitEdit(): void {
+    this.editingSplitId.set(null);
+    if (this.deliveryDetail()) {
+      this.openDelivery(this.deliveryDetail()!);
+    }
+  }
+
+  saveSplitEdit(split: InHouseSplit): void {
+    const delivery = this.deliveryDetail();
+    if (!delivery) return;
+    this.inHouseApi.updateSplit(delivery.autoId, split.autoId, { diaAutoId: split.dia.autoId, quantityKgs: split.quantityKgs })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notificationService.success('Split updated', 'The fabric split was updated successfully.');
+          this.editingSplitId.set(null);
+          this.openDelivery(delivery);
+          this.loadData();
+        },
+        error: (error) => this.notificationService.error('Unable to update split', getApiErrorMessage(error))
+      });
+  }
+
   openCreateCutting(): void {
     this.editingCutting.set(null);
     this.cuttingDialogVisible.set(true);
-    this.cuttingForm.reset({ cuttingDate: new Date(), totalOutputPieces: null, notes: '' });
+    this.cuttingForm.reset({ cuttingDate: new Date(), totalOutputPieces: null, styleAutoId: '', size: 'M', ratePerPiece: null, notes: '' });
     this.cuttingRows.clear();
     this.addCuttingRow();
   }
@@ -351,22 +464,35 @@ export class InHousePageComponent {
 
   openCutting(record: CuttingEntry): void {
     this.editingCutting.set(record);
-    this.cuttingDialogVisible.set(true);
-    this.cuttingForm.reset({ cuttingDate: new Date(record.cuttingDate), totalOutputPieces: record.totalOutputPieces, notes: record.notes ?? '' });
+    
+    const firstRow = record.rows[0];
+    this.cuttingForm.patchValue({ 
+        cuttingDate: new Date(record.cuttingDate), 
+        totalOutputPieces: record.totalOutputPieces, 
+        styleAutoId: firstRow?.style?.autoId || '',
+        size: firstRow?.size || 'M',
+        ratePerPiece: firstRow?.ratePerPiece || null,
+        notes: record.notes ?? '' 
+    });
+
     this.cuttingRows.clear();
     for (const row of record.rows) {
       const group = this.createCuttingRow();
       group.patchValue({
-        diaAutoId: row.dia.autoId,
-        styleAutoId: row.style.autoId,
-        size: row.size,
+        diaAutoId: row.dia?.autoId || '',
+        styleAutoId: row.style?.autoId || '',
+        size: row.size || 'M',
         quantityUsedKgs: row.quantityUsedKgs,
         ratePerPiece: row.ratePerPiece ?? null,
         availableQuantityKgs: null
       });
       this.cuttingRows.push(group);
-      this.refreshRowAvailability(group);
     }
+
+    // Refresh availability for all added rows
+    this.refreshCuttingAvailability();
+    
+    this.cuttingDialogVisible.set(true);
   }
 
   addCuttingRow(): void {
@@ -384,6 +510,10 @@ export class InHousePageComponent {
     this.refreshRowAvailability(this.cuttingRows.at(index));
   }
 
+  refreshCuttingAvailability(): void {
+    this.cuttingRows.controls.forEach((row) => this.refreshRowAvailability(row));
+  }
+
   saveCutting(): void {
     if (this.cuttingForm.invalid) {
       this.cuttingForm.markAllAsTouched();
@@ -396,10 +526,10 @@ export class InHousePageComponent {
       notes: value.notes?.trim() || null,
       rows: value.rows.map((row) => ({
         diaAutoId: row.diaAutoId,
-        styleAutoId: row.styleAutoId,
-        size: row.size,
+        styleAutoId: value.styleAutoId,
+        size: value.size,
         quantityUsedKgs: Number(row.quantityUsedKgs ?? 0),
-        ratePerPiece: row.ratePerPiece ? Number(row.ratePerPiece) : null
+        ratePerPiece: value.ratePerPiece ? Number(value.ratePerPiece) : null
       } satisfies CuttingRowRequest))
     };
     const request$ = this.editingCutting()
@@ -478,7 +608,7 @@ export class InHousePageComponent {
 
   private refreshRowAvailability(row: CuttingRowForm): void {
     const diaAutoId = row.controls.diaAutoId.getRawValue();
-    const styleAutoId = row.controls.styleAutoId.getRawValue();
+    const styleAutoId = this.cuttingForm.controls.styleAutoId.getRawValue();
     if (!diaAutoId || !styleAutoId) {
       row.controls.availableQuantityKgs.setValue(null);
       return;

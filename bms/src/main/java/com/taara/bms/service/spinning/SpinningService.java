@@ -28,6 +28,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -70,15 +72,16 @@ public class SpinningService {
     @Transactional(readOnly = true)
     public Page<SpinningOrderResponse> getOrders(
             String styleAutoId,
+            String sectionAutoId,
             LocalDate fromDate,
             LocalDate toDate,
             Boolean linkedYarnOrder,
             boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching spinning orders with styleAutoId='{}', fromDate={}, toDate={}, linkedYarnOrder={}, includeDeleted={}, pageable={}",
-                styleAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted, pageable);
-        Page<SpinningOrderResponse> orders = spinningOrderRepository.findAll(orderSpec(styleAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted), pageable)
+        log.info("Fetching spinning orders with styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, linkedYarnOrder={}, includeDeleted={}, pageable={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted, pageable);
+        Page<SpinningOrderResponse> orders = spinningOrderRepository.findAll(orderSpec(styleAutoId, sectionAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted), pageable)
                 .map(mapper::toOrderResponse);
         log.info("Fetched {} spinning orders", orders.getNumberOfElements());
         return orders;
@@ -87,28 +90,29 @@ public class SpinningService {
     @Transactional(readOnly = true)
     public Page<SpinningDeliveryResponse> getDeliveries(
             String styleAutoId,
+            String sectionAutoId,
             LocalDate fromDate,
             LocalDate toDate,
             boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching spinning deliveries with styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, pageable={}",
-                styleAutoId, fromDate, toDate, includeDeleted, pageable);
-        Page<SpinningDeliveryResponse> deliveries = spinningDeliveryRepository.findAll(deliverySpec(styleAutoId, fromDate, toDate, includeDeleted), pageable)
+        log.info("Fetching spinning deliveries with styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, pageable={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable);
+        Page<SpinningDeliveryResponse> deliveries = spinningDeliveryRepository.findAll(deliverySpec(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted), pageable)
                 .map(mapper::toDeliveryResponse);
         log.info("Fetched {} spinning deliveries", deliveries.getNumberOfElements());
         return deliveries;
     }
 
     @Transactional(readOnly = true)
-    public SpinningDashboardResponse getDashboard(String styleAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
-        log.info("Calculating spinning dashboard with styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
-                styleAutoId, fromDate, toDate, includeDeleted);
-        BigDecimal totalDispatched = spinningOrderRepository.findAll(orderSpec(styleAutoId, fromDate, toDate, null, includeDeleted))
+    public SpinningDashboardResponse getDashboard(String styleAutoId, String sectionAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
+        log.info("Calculating spinning dashboard with styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
+        BigDecimal totalDispatched = spinningOrderRepository.findAll(orderSpec(styleAutoId, sectionAutoId, fromDate, toDate, null, includeDeleted))
                 .stream()
                 .map(SpinningOrder::getQuantitySentKgs)
                 .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
-        BigDecimal totalReceived = spinningDeliveryRepository.findAll(deliverySpec(styleAutoId, fromDate, toDate, includeDeleted))
+        BigDecimal totalReceived = spinningDeliveryRepository.findAll(deliverySpec(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted))
                 .stream()
                 .map(SpinningDelivery::getFinalQuantityKgs)
                 .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
@@ -142,6 +146,9 @@ public class SpinningService {
         order.setDispatchDate(request.dispatchDate());
         order.setLinkedYarnOrder(linkedYarnOrder);
         order.setStyle(style);
+        if (request.stitchingSectionAutoId() != null && !request.stitchingSectionAutoId().isBlank()) {
+            order.setStitchingSection(lookupService.getActiveSectionByAutoId(request.stitchingSectionAutoId()));
+        }
         order.setQuantitySentKgs(quantity);
         order.setFactoryNotes(request.factoryNotes());
         order.setAutoCreated(false);
@@ -164,6 +171,12 @@ public class SpinningService {
     public SpinningDeliveryResponse createDelivery(SpinningDeliveryCreateRequest request) {
         log.info("Creating spinning delivery for styleAutoId='{}' on deliveryDate={}", request.styleAutoId(), request.deliveryDate());
         Style style = lookupService.getActiveStyleByAutoId(request.styleAutoId());
+        
+        com.taara.bms.entity.masterdata.StitchingSection section = null;
+        if (request.stitchingSectionAutoId() != null && !request.stitchingSectionAutoId().isBlank()) {
+            section = lookupService.getActiveSectionByAutoId(request.stitchingSectionAutoId());
+        }
+
         BigDecimal actualQuantity = BigDecimalUtils.scale(request.actualQuantityKgs());
         BigDecimal buffer = BigDecimalUtils.scale(request.bufferQuantityKgs());
         BigDecimal finalQuantity = actualQuantity.add(buffer);
@@ -172,16 +185,17 @@ public class SpinningService {
             throw new BusinessValidationException("INVALID_FINAL_QUANTITY", "Final quantity must be positive");
         }
 
-        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantityByStyle(style.getId());
-        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantityByStyle(style.getId());
-        log.debug("Spinning delivery guardrail for style '{}': dispatched={}, received={}, incomingFinal={}",
-                style.getAutoId(), totalDispatched, totalReceived, finalQuantity);
+        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantity(style.getId(), section != null ? section.getId() : null);
+        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantity(style.getId(), section != null ? section.getId() : null);
+        log.debug("Spinning delivery guardrail for style '{}', section '{}': dispatched={}, received={}, incomingFinal={}",
+                style.getAutoId(), section != null ? section.getAutoId() : "N/A", totalDispatched, totalReceived, finalQuantity);
         if (totalReceived.add(finalQuantity).compareTo(totalDispatched) > 0) {
             throw new BusinessValidationException(
                     "SPINNING_DELIVERY_EXCEEDS_DISPATCHED",
-                    "Spinning delivery exceeds dispatched quantity for this style",
+                    "Spinning delivery exceeds dispatched quantity for this style/section",
                     Map.of(
                             "styleAutoId", style.getAutoId(),
+                            "sectionAutoId", section != null ? section.getAutoId() : "N/A",
                             "dispatched", totalDispatched,
                             "received", totalReceived,
                             "incomingFinalQuantity", finalQuantity
@@ -193,9 +207,29 @@ public class SpinningService {
         delivery.setAutoId(autoIdService.next(AutoIdSequence.SPINNING_DELIVERY));
         delivery.setDeliveryDate(request.deliveryDate());
         delivery.setStyle(style);
+        delivery.setStitchingSection(section);
         delivery.setActualQuantityKgs(actualQuantity);
         delivery.setBufferQuantityKgs(buffer);
         delivery.setFinalQuantityKgs(finalQuantity);
+        
+        delivery.setPricePerKg(request.pricePerKg());
+        if (request.pricePerKg() != null) {
+            delivery.setTotalPrice(request.pricePerKg().multiply(finalQuantity));
+        }
+        if (delivery.getTotalPrice() != null) {
+            BigDecimal paid = request.paidAmount() != null ? request.paidAmount() : BigDecimal.ZERO;
+            delivery.setPaidAmount(paid);
+            BigDecimal balance = delivery.getTotalPrice().subtract(paid);
+            delivery.setBalanceAmount(balance);
+            if (balance.signum() <= 0) {
+                delivery.setPaymentStatus(com.taara.bms.enums.PaymentStatus.PAID);
+            } else if (paid.signum() > 0) {
+                delivery.setPaymentStatus(com.taara.bms.enums.PaymentStatus.PARTIALLY_PAID);
+            } else {
+                delivery.setPaymentStatus(com.taara.bms.enums.PaymentStatus.NOT_PAID);
+            }
+        }
+        
         delivery.setNotes(request.notes());
         SpinningDelivery savedDelivery = spinningDeliveryRepository.save(delivery);
         log.info("Created spinning delivery '{}'", savedDelivery.getAutoId());
@@ -237,8 +271,9 @@ public class SpinningService {
     }
 
     private void ensureDeletionSafe(SpinningOrder order) {
-        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantityByStyle(order.getStyle().getId());
-        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantityByStyle(order.getStyle().getId());
+        UUID sectionId = order.getStitchingSection() != null ? order.getStitchingSection().getId() : null;
+        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantity(order.getStyle().getId(), sectionId);
+        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantity(order.getStyle().getId(), sectionId);
         BigDecimal remainingDispatched = totalDispatched.subtract(order.getQuantitySentKgs());
         log.debug("Checking spinning order downstream usage '{}': totalDispatched={}, totalReceived={}, remainingDispatched={}",
                 order.getAutoId(), totalDispatched, totalReceived, remainingDispatched);
@@ -257,6 +292,7 @@ public class SpinningService {
 
     private Specification<SpinningOrder> orderSpec(
             String styleAutoId,
+            String sectionAutoId,
             LocalDate fromDate,
             LocalDate toDate,
             Boolean linkedYarnOrder,
@@ -269,6 +305,9 @@ public class SpinningService {
             }
             if (styleAutoId != null && !styleAutoId.isBlank()) {
                 predicates.add(cb.equal(cb.lower(root.get("style").get("autoId")), styleAutoId.trim().toLowerCase()));
+            }
+            if (sectionAutoId != null && !sectionAutoId.isBlank()) {
+                predicates.add(cb.equal(cb.lower(root.get("stitchingSection").get("autoId")), sectionAutoId.trim().toLowerCase()));
             }
             if (fromDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("dispatchDate"), fromDate));
@@ -283,7 +322,7 @@ public class SpinningService {
         };
     }
 
-    private Specification<SpinningDelivery> deliverySpec(String styleAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
+    private Specification<SpinningDelivery> deliverySpec(String styleAutoId, String sectionAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
         return (root, query, cb) -> {
             var predicates = new ArrayList<Predicate>();
             if (!includeDeleted) {
@@ -291,6 +330,9 @@ public class SpinningService {
             }
             if (styleAutoId != null && !styleAutoId.isBlank()) {
                 predicates.add(cb.equal(cb.lower(root.get("style").get("autoId")), styleAutoId.trim().toLowerCase()));
+            }
+            if (sectionAutoId != null && !sectionAutoId.isBlank()) {
+                predicates.add(cb.equal(cb.lower(root.get("stitchingSection").get("autoId")), sectionAutoId.trim().toLowerCase()));
             }
             if (fromDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("deliveryDate"), fromDate));

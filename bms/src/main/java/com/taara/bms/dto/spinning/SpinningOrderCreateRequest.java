@@ -15,6 +15,7 @@ public record SpinningOrderCreateRequest(
         @NotNull(message = "Quantity sent is required")
         @DecimalMin(value = "0.01", message = "Quantity sent must be positive")
         BigDecimal quantitySentKgs,
+        String stitchingSectionAutoId,
         String factoryNotes
 ) {
 }

@@ -1,7 +1,7 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -32,7 +32,6 @@ import { StitchingApiService } from '../../core/services/stitching-api.service';
 import { getApiErrorMessage } from '../../core/utils/api-error.utils';
 
 type OrderRowForm = FormGroup<{
-  stitchingSectionAutoId: FormControl<string>;
   styleAutoId: FormControl<string>;
   size: FormControl<GarmentSize>;
   availablePieces: FormControl<number | null>;
@@ -45,6 +44,7 @@ type OrderRowForm = FormGroup<{
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    CurrencyPipe,
     DatePipe,
     ButtonModule,
     CheckboxModule,
@@ -88,10 +88,21 @@ export class StitchingPageComponent {
   readonly selectedDeliveries = signal<StitchingDelivery[]>([]);
   readonly editingOrder = signal<StitchingOrder | null>(null);
 
+  readonly orderFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
+
+  readonly deliveryFilters = this.fb.group({
+    styleAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
+  });
+
   readonly orderForm = this.fb.group({
     orderDate: this.fb.control<Date | null>(new Date(), Validators.required),
-    expectedSize: this.fb.control<GarmentSize>('M', Validators.required),
-    expectedPieces: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
+    stitchingSectionAutoId: this.fb.control('', Validators.required),
     notes: this.fb.control(''),
     rows: this.fb.array<OrderRowForm>([])
   });
@@ -148,7 +159,21 @@ export class StitchingPageComponent {
     return this.orderForm.controls.rows;
   }
 
-  readonly totalTaken = computed(() => this.orderRows.controls.reduce((sum, row) => sum + Number(row.controls.piecesTaken.getRawValue() ?? 0), 0));
+  private readonly orderFormValue = toSignal(this.orderForm.valueChanges);
+
+  readonly totalTaken = computed(() => {
+    this.orderFormValue();
+    return this.orderRows.controls.reduce((sum, row) => sum + Number(row.controls.piecesTaken.getRawValue() ?? 0), 0);
+  });
+
+  readonly totalCost = computed(() => {
+    this.orderFormValue();
+    return this.orderRows.controls.reduce((sum, row) => {
+      const pcs = Number(row.controls.piecesTaken.getRawValue() ?? 0);
+      const rate = Number(row.controls.ratePerPiece.getRawValue() ?? 0);
+      return sum + (pcs * rate);
+    }, 0);
+  });
 
   constructor() {
     this.loadData();
@@ -183,7 +208,7 @@ export class StitchingPageComponent {
   openCreateOrder(): void {
     this.editingOrder.set(null);
     this.orderDialogVisible.set(true);
-    this.orderForm.reset({ orderDate: new Date(), expectedSize: 'M', expectedPieces: null, notes: '' });
+    this.orderForm.reset({ orderDate: new Date(), stitchingSectionAutoId: '', notes: '' });
     this.orderRows.clear();
     this.addOrderRow();
   }
@@ -193,14 +218,12 @@ export class StitchingPageComponent {
     this.orderDialogVisible.set(true);
     this.orderForm.reset({
       orderDate: new Date(record.orderDate),
-      expectedSize: record.expectedSize,
-      expectedPieces: record.expectedPieces,
+      stitchingSectionAutoId: record.rows[0]?.stitchingSection?.autoId || '',
       notes: record.notes ?? ''
     });
     this.orderRows.clear();
     for (const row of record.rows) {
       const group = this.fb.group({
-        stitchingSectionAutoId: this.fb.control(row.stitchingSection.autoId, Validators.required),
         styleAutoId: this.fb.control(row.style.autoId, Validators.required),
         size: this.fb.control<GarmentSize>(row.size, Validators.required),
         availablePieces: this.fb.control<number | null>({ value: null, disabled: true }),
@@ -220,7 +243,6 @@ export class StitchingPageComponent {
 
   addOrderRow(): void {
     this.orderRows.push(this.fb.group({
-      stitchingSectionAutoId: this.fb.control('', Validators.required),
       styleAutoId: this.fb.control('', Validators.required),
       size: this.fb.control<GarmentSize>('M', Validators.required),
       availablePieces: this.fb.control<number | null>({ value: null, disabled: true }),
@@ -259,14 +281,15 @@ export class StitchingPageComponent {
     const value = this.orderForm.getRawValue();
     const payload: StitchingOrderCreateRequest = {
       orderDate: this.toApiDate(value.orderDate ?? new Date()),
-      expectedSize: value.expectedSize,
-      expectedPieces: Number(value.expectedPieces ?? 0),
+      expectedSize: value.rows[0]?.size || 'M',
+      expectedPieces: this.totalTaken(),
       notes: value.notes?.trim() || null,
       rows: value.rows.map((row) => ({
-        stitchingSectionAutoId: row.stitchingSectionAutoId,
+        stitchingSectionAutoId: value.stitchingSectionAutoId,
         styleAutoId: row.styleAutoId,
         size: row.size,
-        piecesTaken: Number(row.piecesTaken ?? 0)
+        piecesTaken: Number(row.piecesTaken ?? 0),
+        ratePerPiece: row.ratePerPiece ? Number(row.ratePerPiece) : null
       } satisfies StitchingOrderRowRequest))
     };
     
@@ -461,6 +484,10 @@ export class StitchingPageComponent {
       return 'warn';
     }
     return 'info';
+  }
+
+  isInvalid(control: AbstractControl | null): boolean {
+    return !!control && control.invalid && (control.touched || control.dirty);
   }
 
   private toApiDate(value: Date): string {

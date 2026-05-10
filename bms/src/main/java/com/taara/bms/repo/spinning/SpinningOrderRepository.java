@@ -23,6 +23,7 @@ public interface SpinningOrderRepository extends JpaRepository<SpinningOrder, UU
             from SpinningOrder s
             where s.isDeleted = false
               and (:styleId is null or s.style.id = :styleId)
+              and (:sectionId is null or s.stitchingSection.id = :sectionId)
             """)
-    BigDecimal sumActiveQuantityByStyle(@Param("styleId") UUID styleId);
+    BigDecimal sumActiveQuantity(@Param("styleId") UUID styleId, @Param("sectionId") UUID sectionId);
 }

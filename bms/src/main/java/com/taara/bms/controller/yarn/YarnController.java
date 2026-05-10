@@ -37,14 +37,15 @@ public class YarnController {
     @GetMapping("/orders")
     public Page<YarnOrderResponse> getOrders(
             @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) String sectionAutoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "false") boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching yarn orders. styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
-                styleAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
-        return yarnService.getOrders(styleAutoId, fromDate, toDate, includeDeleted, pageable);
+        log.info("Fetching yarn orders. styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
+        return yarnService.getOrders(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable);
     }
 
     @PostMapping("/orders")
@@ -68,12 +69,13 @@ public class YarnController {
     @GetMapping("/dashboard")
     public YarnDashboardResponse getDashboard(
             @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) String sectionAutoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "false") boolean includeDeleted
     ) {
-        log.info("Fetching yarn dashboard. styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
-                styleAutoId, fromDate, toDate, includeDeleted);
-        return yarnService.getDashboard(styleAutoId, fromDate, toDate, includeDeleted);
+        log.info("Fetching yarn dashboard. styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
+        return yarnService.getDashboard(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
     }
 }

@@ -18,6 +18,15 @@
           <div><p class="ops-eyebrow">Fabric Receipts</p><h2>In-house deliveries</h2></div>
           <span class="ops-muted">{{ deliveries().length }} active records</span>
         </div>
+        <div class="ops-toolbar">
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="deliveryFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="deliveryFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="deliveryFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
+          <div class="ops-toolbar-actions">
+          </div>
+        </div>
         <p-table [value]="deliveries()" [loading]="loading()" dataKey="autoId" responsiveLayout="scroll" [tableStyle]="{ 'min-width': '72rem' }" [stripedRows]="true">
           <ng-template pTemplate="header">
             <tr>
@@ -112,7 +121,11 @@
           <span class="ops-muted">{{ cuttings().length }} active records</span>
         </div>
         <div class="ops-toolbar">
-          <div class="ops-toolbar-filters"></div>
+          <div class="ops-toolbar-filters">
+            <p-select [options]="styleOptions()" [formControl]="cuttingFilters.controls.styleAutoId" optionLabel="label" optionValue="value" placeholder="Filter by Style" [showClear]="true" appendTo="body"></p-select>
+            <p-datePicker [formControl]="cuttingFilters.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
+            <p-datePicker [formControl]="cuttingFilters.controls.toDate" placeholder="To date" appendTo="body"></p-datePicker>
+          </div>
           <div class="ops-toolbar-actions">
             <button pButton icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!selectedCuttings().length" (click)="confirmDeleteCuttings()"></button>
             <button pButton label="Add Cutting" icon="pi pi-plus" (click)="openCreateCutting()"></button>
@@ -133,9 +146,11 @@
               <th style="width: 3rem"><p-tableHeaderCheckbox></p-tableHeaderCheckbox></th>
               <th>Id</th>
               <th>Date</th>
-              <th>Total Kg Used</th>
-              <th>Total Output</th>
-              <th>pcs/kg</th>
+              <th>Style</th>
+              <th>Size</th>
+              <th>Total Kg</th>
+              <th>Output</th>
+              <th>Total Price</th>
               <th>Status</th>
             </tr>
           </ng-template>
@@ -144,15 +159,11 @@
               <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
               <td class="ops-table-id">{{ record.autoId }}</td>
               <td>{{ record.cuttingDate | date: 'dd MMM yyyy' }}</td>
+              <td>{{ record.rows[0]?.style?.styleName || 'N/A' }}</td>
+              <td>{{ record.rows[0]?.size || 'N/A' }}</td>
               <td>{{ record.totalQuantityUsedKgs | number: '1.2-2' }} kg</td>
               <td>{{ record.totalOutputPieces }}</td>
-              <td>
-                @if (record.rows.length > 0) {
-                  {{ record.rows[0].ratePerPiece | number: '1.2-2' }}
-                  @if (record.rows.length > 1) { <span class="ops-muted">...</span> }
-                }
-              </td>
-              <td>{{ record.pcsPerKg | number: '1.2-2' }}</td>
+              <td>{{ (record.totalOutputPieces * (record.rows[0]?.ratePerPiece || 0)) | currency: 'INR' }}</td>
               <td><p-tag [severity]="cuttingSeverity(record.status)" [value]="record.status"></p-tag></td>
             </tr>
           </ng-template>
@@ -207,16 +218,34 @@
             <th>Id</th>
             <th>Dia</th>
             <th>Qty (kg)</th>
-            <th></th>
+            <th>Actions</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-split>
           <tr>
             <td class="ops-table-id">{{ split.autoId }}</td>
-            <td>{{ split.dia.diaValue }}</td>
-            <td>{{ split.quantityKgs | number: '1.2-2' }} kg</td>
             <td>
-              <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!split.canDelete" (click)="confirmDeleteSplit(split)"></button>
+              @if (editingSplitId() === split.autoId) {
+                <p-select [options]="diaOptions()" [(ngModel)]="split.dia.autoId" optionLabel="label" optionValue="value" appendTo="body" class="p-inputtext-sm"></p-select>
+              } @else {
+                {{ split.dia.diaValue }}
+              }
+            </td>
+            <td>
+              @if (editingSplitId() === split.autoId) {
+                <p-inputNumber [(ngModel)]="split.quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" class="p-inputtext-sm"></p-inputNumber>
+              } @else {
+                {{ split.quantityKgs | number: '1.2-2' }} kg
+              }
+            </td>
+            <td>
+              @if (editingSplitId() === split.autoId) {
+                <button pButton type="button" icon="pi pi-check" severity="success" [text]="true" (click)="saveSplitEdit(split)"></button>
+                <button pButton type="button" icon="pi pi-times" severity="secondary" [text]="true" (click)="cancelSplitEdit()"></button>
+              } @else {
+                <button pButton type="button" icon="pi pi-pencil" severity="secondary" [text]="true" (click)="startSplitEdit(split)"></button>
+                <button pButton type="button" icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!split.canDelete" (click)="confirmDeleteSplit(split)"></button>
+              }
             </td>
           </tr>
         </ng-template>
@@ -266,20 +295,21 @@
 <p-dialog [visible]="cuttingDialogVisible()" [modal]="true" [style]="{ width: '72rem', maxWidth: '96vw' }" [header]="editingCutting() ? 'Update Cutting' : 'Create Cutting'" (visibleChange)="cuttingDialogVisible.set($event)">
   <form [formGroup]="cuttingForm" class="ops-form-grid">
     <div class="ops-form-field"><label>Cutting date <span class="app-required">*</span></label><p-datePicker formControlName="cuttingDate" appendTo="body"></p-datePicker></div>
+    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Select Style" (onChange)="refreshCuttingAvailability()" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Select Size" appendTo="body"></p-select></div>
+    <div class="ops-form-field"><label>Rate / pcs <span class="app-required">*</span></label><p-inputNumber formControlName="ratePerPiece" mode="currency" currency="INR" [minFractionDigits]="2"></p-inputNumber></div>
     <div class="ops-form-field"><label>Total output pcs <span class="app-required">*</span></label><p-inputNumber formControlName="totalOutputPieces"></p-inputNumber></div>
-    <div class="ops-form-field"><label>Notes</label><input pInputText formControlName="notes" /></div>
+    <div class="ops-form-field"><label>Total Cost</label><p-inputNumber [ngModel]="totalCost()" [ngModelOptions]="{standalone: true}" mode="currency" currency="INR" [disabled]="true"></p-inputNumber></div>
+    <div class="ops-form-field ops-form-field--full"><label>Notes</label><input pInputText formControlName="notes" /></div>
 
     <div class="ops-form-field ops-form-field--full">
-      <label>Cutting rows <span class="app-required">*</span></label>
+      <label>Cutting rows (Fabric used) <span class="app-required">*</span></label>
       <div formArrayName="rows" class="ops-line-stack">
         @for (row of cuttingRows.controls; track $index) {
-          <div class="ops-inline-form ops-inline-grid ops-inline-grid--seven" [formGroupName]="$index">
-            <p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
-            <p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
-            <p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Size" appendTo="body"></p-select>
+          <div class="ops-inline-form ops-inline-grid ops-inline-grid--four" [formGroupName]="$index">
+            <p-select [options]="getAvailableDiaOptions($index)" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
             <p-inputNumber formControlName="availableQuantityKgs" mode="decimal" [readonly]="true" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg"></p-inputNumber>
             <p-inputNumber formControlName="quantityUsedKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg" placeholder="Used kg"></p-inputNumber>
-            <p-inputNumber formControlName="ratePerPiece" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="2" placeholder="Rate/pcs"></p-inputNumber>
             <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeCuttingRow($index)"></button>
           </div>
         }

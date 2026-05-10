@@ -1,7 +1,7 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { DatePipe, DecimalPipe, CurrencyPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, effect, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { AbstractControl, FormsModule, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -15,7 +15,7 @@ import { TableModule } from 'primeng/table';
 import { TabViewModule } from 'primeng/tabview';
 import { TextareaModule } from 'primeng/textarea';
 import { QueryOptions } from '../../core/models/api.models';
-import { Style } from '../../core/models/master-data.models';
+import { SectionProcessType, StitchingSection, Style } from '../../core/models/master-data.models';
 import { SpinningDashboardResponse, SpinningDelivery, SpinningOrder } from '../../core/models/spinning.models';
 import { YarnOrder } from '../../core/models/yarn.models';
 import { MasterDataApiService } from '../../core/services/master-data-api.service';
@@ -29,6 +29,8 @@ import { getApiErrorMessage } from '../../core/utils/api-error.utils';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    FormsModule,
+    CurrencyPipe,
     DatePipe,
     DecimalPipe,
     ButtonModule,
@@ -56,6 +58,7 @@ export class SpinningPageComponent {
 
   readonly dashboard = signal<SpinningDashboardResponse | null>(null);
   readonly styles = signal<Style[]>([]);
+  readonly sections = signal<StitchingSection[]>([]);
   readonly yarnOrders = signal<YarnOrder[]>([]);
   readonly orders = signal<SpinningOrder[]>([]);
   readonly deliveries = signal<SpinningDelivery[]>([]);
@@ -76,19 +79,27 @@ export class SpinningPageComponent {
   readonly deliverySubmitting = signal(false);
   readonly orderError = signal<string | null>(null);
   readonly deliveryError = signal<string | null>(null);
+  readonly availableYarnQuantity = signal<number | null>(null);
 
   readonly orderFilters = this.fb.group({
     styleAutoId: this.fb.control(''),
+    sectionAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null),
     linkedYarnOrder: this.fb.control<'ALL' | 'LINKED' | 'MANUAL'>('ALL')
   });
 
   readonly deliveryFilters = this.fb.group({
-    styleAutoId: this.fb.control('')
+    styleAutoId: this.fb.control(''),
+    sectionAutoId: this.fb.control(''),
+    fromDate: this.fb.control<Date | null>(null),
+    toDate: this.fb.control<Date | null>(null)
   });
 
   readonly createOrderForm = this.fb.group({
     dispatchDate: this.fb.control<Date | null>(new Date(), [Validators.required]),
     styleAutoId: this.fb.control('', [Validators.required]),
+    stitchingSectionAutoId: this.fb.control(''),
     linkedYarnOrderAutoId: this.fb.control(''),
     quantitySentKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
     factoryNotes: this.fb.control('')
@@ -97,10 +108,22 @@ export class SpinningPageComponent {
   readonly createDeliveryForm = this.fb.group({
     deliveryDate: this.fb.control<Date | null>(new Date(), [Validators.required]),
     styleAutoId: this.fb.control('', [Validators.required]),
+    stitchingSectionAutoId: this.fb.control(''),
     actualQuantityKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
     bufferQuantityKgs: this.fb.control<number | null>(0),
+    pricePerKg: this.fb.control<number | null>(1, [Validators.min(0)]),
+    paidAmount: this.fb.control<number | null>(null, [Validators.min(0)]),
     notes: this.fb.control('')
   });
+
+  private readonly actualQty = toSignal(this.createDeliveryForm.controls.actualQuantityKgs.valueChanges, { initialValue: this.createDeliveryForm.controls.actualQuantityKgs.value });
+  private readonly pricePerKgSignal = toSignal(this.createDeliveryForm.controls.pricePerKg.valueChanges, { initialValue: this.createDeliveryForm.controls.pricePerKg.value });
+  private readonly paidAmt = toSignal(this.createDeliveryForm.controls.paidAmount.valueChanges, { initialValue: this.createDeliveryForm.controls.paidAmount.value });
+  private readonly deliveryStyle = toSignal(this.createDeliveryForm.controls.styleAutoId.valueChanges, { initialValue: this.createDeliveryForm.controls.styleAutoId.value });
+  private readonly deliverySection = toSignal(this.createDeliveryForm.controls.stitchingSectionAutoId.valueChanges, { initialValue: this.createDeliveryForm.controls.stitchingSectionAutoId.value });
+
+  private readonly orderStyle = toSignal(this.createOrderForm.controls.styleAutoId.valueChanges, { initialValue: this.createOrderForm.controls.styleAutoId.value });
+  private readonly orderSection = toSignal(this.createOrderForm.controls.stitchingSectionAutoId.valueChanges, { initialValue: this.createOrderForm.controls.stitchingSectionAutoId.value });
 
   readonly orderQuery = signal<QueryOptions>({
     page: 0,
@@ -119,7 +142,35 @@ export class SpinningPageComponent {
   });
 
   readonly styleOptions = computed(() => this.styles().map((style) => ({ label: `${style.autoId} - ${style.styleName}`, value: style.autoId })));
-  readonly yarnOrderOptions = computed(() => this.yarnOrders().map((order) => ({ label: `${order.autoId} - ${order.style.styleName}`, value: order.autoId })));
+  readonly sectionOptions = computed(() => this.sections().map((section) => ({ label: `${section.autoId} - ${section.sectionName}`, value: section.autoId })));
+  
+  readonly yarnOrderOptions = computed(() => {
+    const style = this.orderStyle();
+    const section = this.orderSection();
+    
+    if (!style || !section) {
+      return []; // Strict match: both required
+    }
+    
+    return this.yarnOrders()
+      .filter((o) => o.style.autoId === style && o.stitchingSection?.autoId === section)
+      .map((order) => ({ label: `${order.autoId} - ${order.style.styleName}`, value: order.autoId }));
+  });
+
+  readonly totalPrice = computed(() => {
+    const qty = this.actualQty() ?? this.createDeliveryForm.controls.actualQuantityKgs.value ?? 0;
+    const price = this.pricePerKgSignal() ?? this.createDeliveryForm.controls.pricePerKg.value ?? 0;
+    return qty * price;
+  });
+
+  readonly balanceAmount = computed(() => {
+    const total = this.totalPrice();
+    const paid = this.paidAmt() ?? this.createDeliveryForm.controls.paidAmount.value ?? 0;
+    return total - paid;
+  });
+
+  readonly availableYarnKgs = computed(() => this.availableYarnQuantity() ?? 0);
+
   readonly linkedOptions = [
     { label: 'All orders', value: 'ALL' },
     { label: 'Linked only', value: 'LINKED' },
@@ -142,19 +193,27 @@ export class SpinningPageComponent {
   constructor() {
     this.bindFilters();
     this.loadInitialData();
+
+    effect(() => {
+      const style = this.deliveryStyle();
+      const section = this.deliverySection();
+      untracked(() => this.refreshAvailableYarn(style, section));
+    });
   }
 
   loadInitialData(): void {
     forkJoin({
       dashboard: this.spinningApi.getDashboard(),
       styles: this.masterDataApi.getStyleOptions(),
+      sections: this.masterDataApi.getSectionOptions('KNITTING' as SectionProcessType),
       yarnOrders: this.yarnApi.getOrders({ page: 0, size: 200, sortField: 'orderDate', sortDirection: 'desc', includeDeleted: false }),
       orders: this.loadOrdersRequest(),
       deliveries: this.loadDeliveriesRequest()
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ dashboard, styles, yarnOrders, orders, deliveries }) => {
+      next: ({ dashboard, styles, sections, yarnOrders, orders, deliveries }) => {
         this.dashboard.set(dashboard);
         this.styles.set(styles);
+        this.sections.set(sections);
         this.yarnOrders.set(yarnOrders.content);
         this.orders.set(orders.content);
         this.totalOrders.set(orders.totalElements);
@@ -177,13 +236,13 @@ export class SpinningPageComponent {
 
   openCreateOrder(): void {
     this.orderError.set(null);
-    this.createOrderForm.reset({ dispatchDate: new Date(), styleAutoId: '', linkedYarnOrderAutoId: '', quantitySentKgs: null, factoryNotes: '' });
+    this.createOrderForm.reset({ dispatchDate: new Date(), styleAutoId: '', stitchingSectionAutoId: '', linkedYarnOrderAutoId: '', quantitySentKgs: null, factoryNotes: '' });
     this.orderCreateVisible.set(true);
   }
 
   openCreateDelivery(): void {
     this.deliveryError.set(null);
-    this.createDeliveryForm.reset({ deliveryDate: new Date(), styleAutoId: '', actualQuantityKgs: null, bufferQuantityKgs: 0, notes: '' });
+    this.createDeliveryForm.reset({ deliveryDate: new Date(), styleAutoId: '', stitchingSectionAutoId: '', actualQuantityKgs: null, bufferQuantityKgs: 0, pricePerKg: null, paidAmount: null, notes: '' });
     this.deliveryCreateVisible.set(true);
   }
 
@@ -209,6 +268,7 @@ export class SpinningPageComponent {
     this.spinningApi.createOrder({
       dispatchDate: this.toApiDate(value.dispatchDate),
       styleAutoId: value.styleAutoId,
+      stitchingSectionAutoId: value.stitchingSectionAutoId || undefined,
       linkedYarnOrderAutoId: value.linkedYarnOrderAutoId || null,
       quantitySentKgs: value.quantitySentKgs,
       factoryNotes: value.factoryNotes?.trim() || null
@@ -250,8 +310,11 @@ export class SpinningPageComponent {
     this.spinningApi.createDelivery({
       deliveryDate: this.toApiDate(value.deliveryDate),
       styleAutoId: value.styleAutoId,
+      stitchingSectionAutoId: value.stitchingSectionAutoId || undefined,
       actualQuantityKgs: value.actualQuantityKgs,
       bufferQuantityKgs: value.bufferQuantityKgs ?? 0,
+      pricePerKg: value.pricePerKg ?? undefined,
+      paidAmount: value.paidAmount ?? undefined,
       notes: value.notes?.trim() || null
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
@@ -359,6 +422,23 @@ export class SpinningPageComponent {
     this.closeDeliveryCreateDialog();
   }
 
+  private refreshAvailableYarn(style?: string, section?: string): void {
+    const s = style ?? this.createDeliveryForm.controls.styleAutoId.value;
+    const sec = section ?? this.createDeliveryForm.controls.stitchingSectionAutoId.value;
+    
+    if (!s || !sec) {
+      this.availableYarnQuantity.set(0);
+      return;
+    }
+
+    this.spinningApi.getDashboard({ styleAutoId: s, sectionAutoId: sec })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (dashboard) => this.availableYarnQuantity.set(dashboard.netPendingAtFactory),
+        error: () => this.availableYarnQuantity.set(0)
+      });
+  }
+
   isInvalid(control: AbstractControl | null): boolean {
     return !!control && control.invalid && (control.touched || control.dirty);
   }
@@ -368,14 +448,42 @@ export class SpinningPageComponent {
       this.orderQuery.update((query) => ({ ...query, page: 0 }));
       this.reloadOrders();
     });
+    this.orderFilters.controls.sectionAutoId.valueChanges.pipe(debounceTime(250), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.orderQuery.update((query) => ({ ...query, page: 0 }));
+      this.reloadOrders();
+    });
     this.orderFilters.controls.linkedYarnOrder.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.orderQuery.update((query) => ({ ...query, page: 0 }));
       this.reloadOrders();
     });
-    this.deliveryFilters.controls.styleAutoId.valueChanges.pipe(debounceTime(250), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.deliveryFilters.controls.toDate.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.deliveryQuery.update((query) => ({ ...query, page: 0 }));
       this.reloadDeliveries();
     });
+
+    this.orderFilters.controls.sectionAutoId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.orderQuery.update((query) => ({ ...query, page: 0 }));
+      this.reloadOrders();
+    });
+
+    this.deliveryFilters.controls.sectionAutoId.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.deliveryQuery.update((query) => ({ ...query, page: 0 }));
+      this.reloadDeliveries();
+    });
+
+    this.createOrderForm.controls.linkedYarnOrderAutoId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((autoId) => {
+        if (!autoId) return;
+        const order = this.yarnOrders().find((o) => o.autoId === autoId);
+        if (order) {
+          this.createOrderForm.patchValue({
+            styleAutoId: order.style.autoId,
+            stitchingSectionAutoId: order.stitchingSection?.autoId || '',
+            quantitySentKgs: order.quantityKgs
+          });
+        }
+      });
   }
 
   private reloadOrders(): void {
@@ -426,6 +534,7 @@ export class SpinningPageComponent {
     const value = this.orderFilters.getRawValue();
     return {
       styleAutoId: value.styleAutoId || undefined,
+      sectionAutoId: value.sectionAutoId || undefined,
       linkedYarnOrder: value.linkedYarnOrder === 'LINKED' ? true : value.linkedYarnOrder === 'MANUAL' ? false : undefined
     };
   }
@@ -433,7 +542,8 @@ export class SpinningPageComponent {
   private buildDeliveryFilters() {
     const value = this.deliveryFilters.getRawValue();
     return {
-      styleAutoId: value.styleAutoId || undefined
+      styleAutoId: value.styleAutoId || undefined,
+      sectionAutoId: value.sectionAutoId || undefined
     };
   }
 

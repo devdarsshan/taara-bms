@@ -11,10 +11,15 @@ public record SpinningDeliveryCreateRequest(
         LocalDate deliveryDate,
         @NotBlank(message = "Style AutoId is required")
         String styleAutoId,
+        String stitchingSectionAutoId,
         @NotNull(message = "Actual quantity is required")
         @DecimalMin(value = "0.01", message = "Actual quantity must be positive")
         BigDecimal actualQuantityKgs,
         BigDecimal bufferQuantityKgs,
+        @DecimalMin(value = "0.00", message = "Price per kg cannot be negative")
+        BigDecimal pricePerKg,
+        @DecimalMin(value = "0.00", message = "Paid amount cannot be negative")
+        BigDecimal paidAmount,
         String notes
 ) {
 }

@@ -1,8 +1,8 @@
 Docker Update Flow:
 
-docker build -t devv7/taara-bms:1.0.1 .
-docker push devv7/taara-bms:1.0.1
+docker build -t devv7/taara-bms:1.1.1 .
+docker push devv7/taara-bms:1.1.1
 
 update latest:
-docker tag devv7/taara-bms:1.0.1 devv7/taara-bms:latest
+docker tag devv7/taara-bms:1.1.1 devv7/taara-bms:latest
 docker push devv7/taara-bms:latest

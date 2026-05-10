@@ -14,6 +14,7 @@ public record CuttingResponse(
         BigDecimal totalQuantityUsedKgs,
         Integer totalOutputPieces,
         BigDecimal pcsPerKg,
+        BigDecimal totalPrice,
         CuttingStatus status,
         String notes,
         List<CuttingRowResponse> rows,

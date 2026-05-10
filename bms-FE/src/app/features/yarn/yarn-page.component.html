@@ -31,6 +31,16 @@
           optionLabel="label"
           optionValue="value"
           placeholder="Filter by style Id"
+          [showClear]="true"
+          appendTo="body"
+        ></p-select>
+        <p-select
+          [options]="sectionOptions()"
+          [formControl]="filtersForm.controls.sectionAutoId"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Filter by section"
+          [showClear]="true"
           appendTo="body"
         ></p-select>
         <p-datePicker [formControl]="filtersForm.controls.fromDate" placeholder="From date" appendTo="body"></p-datePicker>
@@ -80,6 +90,7 @@
           <th pSortableColumn="autoId">Id <p-sortIcon field="autoId"></p-sortIcon></th>
           <th pSortableColumn="orderDate">Order Date <p-sortIcon field="orderDate"></p-sortIcon></th>
           <th>Style</th>
+          <th>Section</th>
           <th pSortableColumn="quantityKgs">Quantity <p-sortIcon field="quantityKgs"></p-sortIcon></th>
           <th>Notes</th>
           <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt"></p-sortIcon></th>
@@ -87,19 +98,17 @@
       </ng-template>
 
       <ng-template pTemplate="body" let-record>
-        <tr (click)="openDetail(record)">
+        <tr (click)="openEdit(record)" class="cursor-pointer">
           <td (click)="$event.stopPropagation()">
             <p-tableCheckbox [value]="record"></p-tableCheckbox>
           </td>
           <td class="ops-table-id">{{ record.autoId }}</td>
           <td>{{ record.orderDate | date: 'dd MMM yyyy' }}</td>
           <td>{{ record.style.autoId }} - {{ record.style.styleName }}</td>
+          <td>{{ record.stitchingSection?.sectionName || 'N/A' }}</td>
           <td>{{ record.quantityKgs | number: '1.2-2' }} kg</td>
           <td>{{ record.supplierNotes || 'No notes' }}</td>
           <td>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</td>
-          <td (click)="$event.stopPropagation()">
-            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" (click)="openEdit(record)"></button>
-          </td>
         </tr>
       </ng-template>
 
@@ -139,6 +148,11 @@
     </div>
 
     <div class="ops-form-field">
+      <label>Knitting Section</label>
+      <p-select [options]="sectionOptions()" formControlName="stitchingSectionAutoId" optionLabel="label" optionValue="value" placeholder="Select section" [showClear]="true" appendTo="body"></p-select>
+    </div>
+
+    <div class="ops-form-field">
       <label>Quantity (kg) <span class="app-required">*</span></label>
       <p-inputNumber formControlName="quantityKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [class.app-control-invalid]="isInvalid(createForm.controls.quantityKgs)"></p-inputNumber>
     </div>
@@ -155,51 +169,4 @@
   </form>
 </p-dialog>
 
-<p-dialog
-  [visible]="detailVisible()"
-  [modal]="true"
-  [style]="{ width: '40rem', maxWidth: '95vw' }"
-  header="Yarn Order Details"
-  (visibleChange)="detailVisible.set($event)"
->
-  @if (detailRecord(); as record) {
-    <div class="ops-detail-grid">
-      <div class="ops-detail-card">
-        <div class="ops-detail-row">
-          <span>Order date</span>
-          <span>{{ record.orderDate | date: 'dd MMM yyyy' }}</span>
-        </div>
-      </div>
-      <div class="ops-detail-card">
-        <div class="ops-detail-row">
-          <span>Style</span>
-          <span>{{ record.style.autoId }} - {{ record.style.styleName }}</span>
-        </div>
-      </div>
-      <div class="ops-detail-card">
-        <div class="ops-detail-row">
-          <span>Quantity</span>
-          <span>{{ record.quantityKgs | number: '1.2-2' }} kg</span>
-        </div>
-      </div>
-      <div class="ops-detail-card ops-detail-card--full">
-        <div class="ops-detail-row">
-          <span>Supplier notes</span>
-          <span>{{ record.supplierNotes || 'No notes provided' }}</span>
-        </div>
-      </div>
-      <div class="ops-detail-card">
-        <div class="ops-detail-row">
-          <span>Created</span>
-          <span>{{ record.createdAt | date: 'dd MMM yyyy, h:mm a' }}</span>
-        </div>
-      </div>
-      <div class="ops-detail-card">
-        <div class="ops-detail-row">
-          <span>Updated</span>
-          <span>{{ record.updatedAt | date: 'dd MMM yyyy, h:mm a' }}</span>
-        </div>
-      </div>
-    </div>
-  }
-</p-dialog>
+

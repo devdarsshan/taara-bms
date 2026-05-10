@@ -487,9 +487,21 @@ public class InHouseService {
         } else {
             cuttingEntry.setPcsPerKg(null);
         }
-        log.debug("Cutting '{}' totals recalculated: totalQuantity={}, totalOutputPieces={}, pcsPerKg={}, status={}",
+        
+        BigDecimal firstRowRate = cuttingEntry.getRows().stream()
+                .map(CuttingEntryRow::getRatePerPiece)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        if (firstRowRate != null && completed) {
+            cuttingEntry.setTotalPrice(firstRowRate.multiply(BigDecimal.valueOf(totalOutputPieces)));
+        } else {
+            cuttingEntry.setTotalPrice(null);
+        }
+        
+        log.debug("Cutting '{}' totals recalculated: totalQuantity={}, totalOutputPieces={}, pcsPerKg={}, status={}, totalPrice={}",
                 cuttingEntry.getAutoId(), cuttingEntry.getTotalQuantityUsedKgs(), cuttingEntry.getTotalOutputPieces(),
-                cuttingEntry.getPcsPerKg(), cuttingEntry.getStatus());
+                cuttingEntry.getPcsPerKg(), cuttingEntry.getStatus(), cuttingEntry.getTotalPrice());
     }
 
     private BigDecimal calculateAvailableFabricKgs(UUID diaId, UUID styleId, CuttingEntry excludingEntry) {

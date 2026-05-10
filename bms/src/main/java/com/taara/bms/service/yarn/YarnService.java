@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.taara.bms.dto.yarn.YarnOrderUpdateRequest;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class YarnService {
@@ -62,20 +63,20 @@ public class YarnService {
     }
 
     @Transactional(readOnly = true)
-    public Page<YarnOrderResponse> getOrders(String styleAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted, Pageable pageable) {
-        log.info("Fetching yarn orders with styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, pageable={}",
-                styleAutoId, fromDate, toDate, includeDeleted, pageable);
-        Page<YarnOrderResponse> orders = yarnOrderRepository.findAll(orderSpec(styleAutoId, fromDate, toDate, includeDeleted), pageable)
+    public Page<YarnOrderResponse> getOrders(String styleAutoId, String sectionAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted, Pageable pageable) {
+        log.info("Fetching yarn orders with styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, pageable={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable);
+        Page<YarnOrderResponse> orders = yarnOrderRepository.findAll(orderSpec(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted), pageable)
                 .map(mapper::toResponse);
         log.info("Fetched {} yarn orders", orders.getNumberOfElements());
         return orders;
     }
 
     @Transactional(readOnly = true)
-    public YarnDashboardResponse getDashboard(String styleAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
-        log.info("Calculating yarn dashboard with styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
-                styleAutoId, fromDate, toDate, includeDeleted);
-        BigDecimal totalOrdered = yarnOrderRepository.findAll(orderSpec(styleAutoId, fromDate, toDate, includeDeleted))
+    public YarnDashboardResponse getDashboard(String styleAutoId, String sectionAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
+        log.info("Calculating yarn dashboard with styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
+        BigDecimal totalOrdered = yarnOrderRepository.findAll(orderSpec(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted))
                 .stream()
                 .map(YarnOrder::getQuantityKgs)
                 .reduce(BigDecimalUtils.ZERO, BigDecimal::add);
@@ -109,6 +110,13 @@ public class YarnService {
         yarnOrder.setOrderDate(request.orderDate());
         yarnOrder.setStyle(style);
         yarnOrder.setQuantityKgs(quantity);
+        if (request.stitchingSectionAutoId() != null && !request.stitchingSectionAutoId().isBlank()) {
+            com.taara.bms.entity.masterdata.StitchingSection section = lookupService.getActiveSectionByAutoId(request.stitchingSectionAutoId());
+            if (section.getProcessType() != com.taara.bms.enums.SectionProcessType.KNITTING) {
+                throw new BusinessValidationException("INVALID_SECTION_TYPE", "Only knitting sections can be assigned to yarn orders");
+            }
+            yarnOrder.setStitchingSection(section);
+        }
         yarnOrder.setSupplierNotes(request.supplierNotes());
         YarnOrder saved = yarnOrderRepository.save(yarnOrder);
         log.info("Created yarn order '{}'", saved.getAutoId());
@@ -119,6 +127,7 @@ public class YarnService {
         spinningOrder.setLinkedYarnOrder(saved);
         spinningOrder.setStyle(style);
         spinningOrder.setQuantitySentKgs(quantity);
+        spinningOrder.setStitchingSection(yarnOrder.getStitchingSection());
         spinningOrder.setFactoryNotes(request.supplierNotes());
         spinningOrder.setAutoCreated(true);
         spinningOrderRepository.save(spinningOrder);
@@ -143,6 +152,15 @@ public class YarnService {
         yarnOrder.setOrderDate(request.orderDate());
         yarnOrder.setStyle(style);
         yarnOrder.setQuantityKgs(quantity);
+        if (request.stitchingSectionAutoId() != null && !request.stitchingSectionAutoId().isBlank()) {
+            com.taara.bms.entity.masterdata.StitchingSection section = lookupService.getActiveSectionByAutoId(request.stitchingSectionAutoId());
+            if (section.getProcessType() != com.taara.bms.enums.SectionProcessType.KNITTING) {
+                throw new BusinessValidationException("INVALID_SECTION_TYPE", "Only knitting sections can be assigned to yarn orders");
+            }
+            yarnOrder.setStitchingSection(section);
+        } else {
+            yarnOrder.setStitchingSection(null);
+        }
         yarnOrder.setSupplierNotes(request.supplierNotes());
 
         SpinningOrder linkedSpinningOrder = spinningOrderRepository.findByLinkedYarnOrderAndIsDeletedFalse(yarnOrder).orElse(null);
@@ -150,9 +168,11 @@ public class YarnService {
             log.info("Updating linked spinning order '{}'", linkedSpinningOrder.getAutoId());
             linkedSpinningOrder.setDispatchDate(request.orderDate());
             linkedSpinningOrder.setStyle(style);
+            linkedSpinningOrder.setStitchingSection(yarnOrder.getStitchingSection());
             
             // Check if the new quantity is sufficient for downstream usage
-            BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantityByStyle(linkedSpinningOrder.getStyle().getId());
+            UUID sectionId = yarnOrder.getStitchingSection() != null ? yarnOrder.getStitchingSection().getId() : null;
+            BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantity(linkedSpinningOrder.getStyle().getId(), sectionId);
             if (quantity.compareTo(totalReceived) < 0) {
                 throw new BusinessValidationException("QUANTITY_TOO_LOW", "Updated quantity is less than already received spinning deliveries.");
             }
@@ -184,8 +204,9 @@ public class YarnService {
     }
 
     private void ensureSpinningDeletionSafe(SpinningOrder spinningOrder) {
-        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantityByStyle(spinningOrder.getStyle().getId());
-        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantityByStyle(spinningOrder.getStyle().getId());
+        UUID sectionId = spinningOrder.getStitchingSection() != null ? spinningOrder.getStitchingSection().getId() : null;
+        BigDecimal totalDispatched = spinningOrderRepository.sumActiveQuantity(spinningOrder.getStyle().getId(), sectionId);
+        BigDecimal totalReceived = spinningDeliveryRepository.sumActiveFinalQuantity(spinningOrder.getStyle().getId(), sectionId);
         BigDecimal remainingDispatched = totalDispatched.subtract(spinningOrder.getQuantitySentKgs());
         log.debug("Checking downstream usage for spinning order '{}': totalDispatched={}, totalReceived={}, remainingDispatched={}",
                 spinningOrder.getAutoId(), totalDispatched, totalReceived, remainingDispatched);
@@ -202,7 +223,7 @@ public class YarnService {
         }
     }
 
-    private Specification<YarnOrder> orderSpec(String styleAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
+    private Specification<YarnOrder> orderSpec(String styleAutoId, String sectionAutoId, LocalDate fromDate, LocalDate toDate, boolean includeDeleted) {
         return (root, query, cb) -> {
             var predicates = new ArrayList<Predicate>();
             if (!includeDeleted) {
@@ -210,6 +231,9 @@ public class YarnService {
             }
             if (styleAutoId != null && !styleAutoId.isBlank()) {
                 predicates.add(cb.equal(cb.lower(root.get("style").get("autoId")), styleAutoId.trim().toLowerCase()));
+            }
+            if (sectionAutoId != null && !sectionAutoId.isBlank()) {
+                predicates.add(cb.equal(cb.lower(root.get("stitchingSection").get("autoId")), sectionAutoId.trim().toLowerCase()));
             }
             if (fromDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("orderDate"), fromDate));

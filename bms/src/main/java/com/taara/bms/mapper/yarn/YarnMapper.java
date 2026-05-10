@@ -21,6 +21,7 @@ public class YarnMapper {
                 yarnOrder.getOrderDate(),
                 referenceMapper.toStyleRef(yarnOrder.getStyle()),
                 yarnOrder.getQuantityKgs(),
+                referenceMapper.toSectionRef(yarnOrder.getStitchingSection()),
                 yarnOrder.getSupplierNotes(),
                 yarnOrder.isDeleted(),
                 yarnOrder.getCreatedAt(),

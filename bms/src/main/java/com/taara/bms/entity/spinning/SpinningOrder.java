@@ -39,6 +39,10 @@ public class SpinningOrder extends BaseEntity {
     @Column(name = "quantity_sent_kgs", nullable = false, precision = 12, scale = 2)
     private BigDecimal quantitySentKgs;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stitching_section_id")
+    private com.taara.bms.entity.masterdata.StitchingSection stitchingSection;
+
     @Column(name = "factory_notes", columnDefinition = "text")
     private String factoryNotes;
 

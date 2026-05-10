@@ -64,6 +64,7 @@ export interface CuttingEntry {
   totalQuantityUsedKgs: number;
   totalOutputPieces: number;
   pcsPerKg: number | null;
+  totalPrice?: number;
   status: CuttingStatus;
   notes: string | null;
   rows: CuttingRow[];
@@ -86,6 +87,11 @@ export interface InHouseSplitBatchRequest {
     diaAutoId: string;
     quantityKgs: number;
   }>;
+}
+
+export interface InHouseSplitUpdateRequest {
+  diaAutoId: string;
+  quantityKgs: number;
 }
 
 export interface CuttingRowRequest {

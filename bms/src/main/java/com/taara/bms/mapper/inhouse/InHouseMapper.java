@@ -79,6 +79,7 @@ public class InHouseMapper {
                 cuttingEntry.getTotalQuantityUsedKgs(),
                 cuttingEntry.getTotalOutputPieces(),
                 cuttingEntry.getPcsPerKg(),
+                cuttingEntry.getTotalPrice(),
                 cuttingEntry.getStatus(),
                 cuttingEntry.getNotes(),
                 cuttingEntry.getRows().stream().map(this::toCuttingRowResponse).toList(),

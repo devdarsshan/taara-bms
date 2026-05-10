@@ -20,6 +20,7 @@ public interface SpinningDeliveryRepository extends JpaRepository<SpinningDelive
             from SpinningDelivery s
             where s.isDeleted = false
               and (:styleId is null or s.style.id = :styleId)
+              and (:sectionId is null or s.stitchingSection.id = :sectionId)
             """)
-    BigDecimal sumActiveFinalQuantityByStyle(@Param("styleId") UUID styleId);
+    BigDecimal sumActiveFinalQuantity(@Param("styleId") UUID styleId, @Param("sectionId") UUID sectionId);
 }

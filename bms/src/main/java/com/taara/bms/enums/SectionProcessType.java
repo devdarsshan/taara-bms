@@ -2,5 +2,6 @@ package com.taara.bms.enums;
 
 public enum SectionProcessType {
     STITCHING,
-    PRINTING
+    PRINTING,
+    KNITTING
 }

@@ -14,7 +14,7 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
 import { QueryOptions } from '../../core/models/api.models';
-import { Style } from '../../core/models/master-data.models';
+import { SectionProcessType, StitchingSection, Style } from '../../core/models/master-data.models';
 import { YarnDashboardResponse, YarnOrder } from '../../core/models/yarn.models';
 import { MasterDataApiService } from '../../core/services/master-data-api.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -54,9 +54,8 @@ export class YarnPageComponent {
   readonly totalOrders = signal(0);
   readonly loading = signal(false);
   readonly styles = signal<Style[]>([]);
+  readonly sections = signal<StitchingSection[]>([]);
   readonly selectedOrders = signal<YarnOrder[]>([]);
-  readonly detailRecord = signal<YarnOrder | null>(null);
-  readonly detailVisible = signal(false);
   readonly createVisible = signal(false);
   readonly submitting = signal(false);
   readonly createError = signal<string | null>(null);
@@ -64,6 +63,7 @@ export class YarnPageComponent {
 
   readonly filtersForm = this.fb.group({
     styleAutoId: this.fb.control(''),
+    sectionAutoId: this.fb.control(''),
     fromDate: this.fb.control<Date | null>(null),
     toDate: this.fb.control<Date | null>(null)
   });
@@ -72,6 +72,7 @@ export class YarnPageComponent {
     orderDate: this.fb.control<Date | null>(new Date(), [Validators.required]),
     styleAutoId: this.fb.control('', [Validators.required]),
     quantityKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
+    stitchingSectionAutoId: this.fb.control(''),
     supplierNotes: this.fb.control('')
   });
 
@@ -87,6 +88,13 @@ export class YarnPageComponent {
     this.styles().map((style) => ({
       label: `${style.autoId} - ${style.styleName}`,
       value: style.autoId
+    }))
+  );
+
+  readonly sectionOptions = computed(() =>
+    this.sections().map((section) => ({
+      label: `${section.autoId} - ${section.sectionName}`,
+      value: section.autoId
     }))
   );
 
@@ -133,15 +141,17 @@ export class YarnPageComponent {
     forkJoin({
       dashboard: this.yarnApi.getDashboard(),
       orders: this.loadOrdersRequest(),
-      styles: this.masterDataApi.getStyleOptions()
+      styles: this.masterDataApi.getStyleOptions(),
+      sections: this.masterDataApi.getSectionOptions('KNITTING' as SectionProcessType)
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ dashboard, orders, styles }) => {
+        next: ({ dashboard, orders, styles, sections }) => {
           this.dashboard.set(dashboard);
           this.orders.set(orders.content);
           this.totalOrders.set(orders.totalElements);
           this.styles.set(styles);
+          this.sections.set(sections);
           this.loading.set(false);
         },
         error: (error: any) => {
@@ -196,6 +206,7 @@ export class YarnPageComponent {
       orderDate: new Date(),
       styleAutoId: '',
       quantityKgs: null,
+      stitchingSectionAutoId: '',
       supplierNotes: ''
     });
     this.createVisible.set(true);
@@ -208,6 +219,7 @@ export class YarnPageComponent {
       orderDate: record.orderDate ? new Date(record.orderDate) : null,
       styleAutoId: record.style.autoId,
       quantityKgs: record.quantityKgs,
+      stitchingSectionAutoId: record.stitchingSection?.autoId || '',
       supplierNotes: record.supplierNotes || ''
     });
     this.createVisible.set(true);
@@ -239,6 +251,7 @@ export class YarnPageComponent {
       orderDate: orderDate ?? '',
       styleAutoId: value.styleAutoId,
       quantityKgs: value.quantityKgs,
+      stitchingSectionAutoId: value.stitchingSectionAutoId || undefined,
       supplierNotes: value.supplierNotes?.trim() || null
     };
 
@@ -294,11 +307,6 @@ export class YarnPageComponent {
     });
   }
 
-  openDetail(record: YarnOrder): void {
-    this.detailRecord.set(record);
-    this.detailVisible.set(true);
-  }
-
   closeCreateDialog(): void {
     if (this.createForm.dirty) {
       this.confirmationService.confirm({
@@ -336,6 +344,13 @@ export class YarnPageComponent {
         this.tableQuery.update((query) => ({ ...query, page: 0 }));
         this.reloadOrders();
       });
+      
+    this.filtersForm.controls.sectionAutoId.valueChanges
+      .pipe(debounceTime(250), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.tableQuery.update((query) => ({ ...query, page: 0 }));
+        this.reloadOrders();
+      });
 
     this.filtersForm.controls.fromDate.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.tableQuery.update((query) => ({ ...query, page: 0 }));
@@ -362,6 +377,7 @@ export class YarnPageComponent {
 
     return {
       styleAutoId: filters.styleAutoId || undefined,
+      sectionAutoId: filters.sectionAutoId || undefined,
       fromDate: this.toApiDate(filters.fromDate),
       toDate: this.toApiDate(filters.toDate)
     };

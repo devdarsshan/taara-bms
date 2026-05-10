@@ -15,7 +15,7 @@ import { ApiService } from './api.service';
 export class SpinningApiService {
   private readonly api = inject(ApiService);
 
-  getOrders(query: QueryOptions & { styleAutoId?: string; fromDate?: string; toDate?: string; linkedYarnOrder?: boolean | null }) {
+  getOrders(query: QueryOptions & { styleAutoId?: string; sectionAutoId?: string; fromDate?: string; toDate?: string; linkedYarnOrder?: boolean | null }) {
     return this.api.get<PageResponse<SpinningOrder>>('/spinning/orders', this.toPageParams(query));
   }
 
@@ -27,7 +27,7 @@ export class SpinningApiService {
     return this.api.delete(`/spinning/orders/${autoId}`);
   }
 
-  getDeliveries(query: QueryOptions & { styleAutoId?: string; fromDate?: string; toDate?: string }) {
+  getDeliveries(query: QueryOptions & { styleAutoId?: string; sectionAutoId?: string; fromDate?: string; toDate?: string }) {
     return this.api.get<PageResponse<SpinningDelivery>>('/spinning/deliveries', this.toPageParams(query));
   }
 
@@ -39,12 +39,12 @@ export class SpinningApiService {
     return this.api.delete(`/spinning/deliveries/${autoId}`);
   }
 
-  getDashboard(filters?: { styleAutoId?: string; fromDate?: string; toDate?: string }) {
+  getDashboard(filters?: { styleAutoId?: string; sectionAutoId?: string; fromDate?: string; toDate?: string }) {
     return this.api.get<SpinningDashboardResponse>('/spinning/dashboard', filters);
   }
 
   private toPageParams(
-    query: QueryOptions & { styleAutoId?: string; fromDate?: string; toDate?: string; linkedYarnOrder?: boolean | null }
+    query: QueryOptions & { styleAutoId?: string; sectionAutoId?: string; fromDate?: string; toDate?: string; linkedYarnOrder?: boolean | null }
   ) {
     const sort = query.sortField ? `${query.sortField},${query.sortDirection ?? 'asc'}` : undefined;
 
@@ -52,6 +52,7 @@ export class SpinningApiService {
       page: query.page,
       size: query.size,
       styleAutoId: query.styleAutoId,
+      sectionAutoId: query.sectionAutoId,
       fromDate: query.fromDate,
       toDate: query.toDate,
       linkedYarnOrder: query.linkedYarnOrder ?? undefined,

@@ -1,5 +1,6 @@
 package com.taara.bms.dto.yarn;
 
+import com.taara.bms.dto.common.StitchingSectionRefResponse;
 import com.taara.bms.dto.common.StyleRefResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ public record YarnOrderResponse(
         LocalDate orderDate,
         StyleRefResponse style,
         BigDecimal quantityKgs,
+        StitchingSectionRefResponse stitchingSection,
         String supplierNotes,
         boolean isDeleted,
         LocalDateTime createdAt,

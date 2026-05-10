@@ -63,7 +63,8 @@ export class MasterDataPageComponent {
   ];
   readonly sectionProcessOptions = [
     { label: 'Stitching', value: 'STITCHING' as const },
-    { label: 'Printing', value: 'PRINTING' as const }
+    { label: 'Printing', value: 'PRINTING' as const },
+    { label: 'Knitting', value: 'KNITTING' as const }
   ];
 
   readonly stylesCrud: StyleCrudController;

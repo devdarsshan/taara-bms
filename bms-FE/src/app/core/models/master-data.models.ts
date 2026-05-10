@@ -24,6 +24,7 @@ export interface Dia {
 }
 
 import { SectionProcessType, StitchingSectionType } from './common.models';
+export type { SectionProcessType, StitchingSectionType };
 
 export interface StitchingSection {
   id: string;

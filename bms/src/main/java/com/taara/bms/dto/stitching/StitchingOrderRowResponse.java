@@ -11,6 +11,7 @@ public record StitchingOrderRowResponse(
         StyleRefResponse style,
         GarmentSize size,
         Integer piecesTaken,
-        java.math.BigDecimal ratePerPiece
+        java.math.BigDecimal ratePerPiece,
+        java.math.BigDecimal totalPrice
 ) {
 }

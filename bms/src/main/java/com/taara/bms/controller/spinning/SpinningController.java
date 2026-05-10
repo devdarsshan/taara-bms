@@ -36,21 +36,22 @@ public class SpinningController {
     @GetMapping("/orders")
     public Page<SpinningOrderResponse> getOrders(
             @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) String sectionAutoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) Boolean linkedYarnOrder,
             @RequestParam(defaultValue = "false") boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching spinning orders. styleAutoId='{}', linkedYarnOrder={}, fromDate={}, toDate={}, includeDeleted={}, page={}",
-                styleAutoId, linkedYarnOrder, fromDate, toDate, includeDeleted, pageable.getPageNumber());
-        return spinningService.getOrders(styleAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted, pageable);
+        log.info("Fetching spinning orders. styleAutoId='{}', sectionAutoId='{}', linkedYarnOrder={}, fromDate={}, toDate={}, includeDeleted={}, page={}",
+                styleAutoId, sectionAutoId, linkedYarnOrder, fromDate, toDate, includeDeleted, pageable.getPageNumber());
+        return spinningService.getOrders(styleAutoId, sectionAutoId, fromDate, toDate, linkedYarnOrder, includeDeleted, pageable);
     }
 
     @PostMapping("/orders")
     public SpinningOrderResponse createOrder(@Valid @RequestBody SpinningOrderCreateRequest request) {
-        log.info("Creating spinning order. styleAutoId='{}', linkedYarnOrderAutoId='{}', dispatchDate={}",
-                request.styleAutoId(), request.linkedYarnOrderAutoId(), request.dispatchDate());
+        log.info("Creating spinning order. styleAutoId='{}', sectionAutoId='{}', linkedYarnOrderAutoId='{}', dispatchDate={}",
+                request.styleAutoId(), request.stitchingSectionAutoId(), request.linkedYarnOrderAutoId(), request.dispatchDate());
         return spinningService.createOrder(request);
     }
 
@@ -63,19 +64,21 @@ public class SpinningController {
     @GetMapping("/deliveries")
     public Page<SpinningDeliveryResponse> getDeliveries(
             @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) String sectionAutoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "false") boolean includeDeleted,
             Pageable pageable
     ) {
-        log.info("Fetching spinning deliveries. styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
-                styleAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
-        return spinningService.getDeliveries(styleAutoId, fromDate, toDate, includeDeleted, pageable);
+        log.info("Fetching spinning deliveries. styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}, page={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable.getPageNumber());
+        return spinningService.getDeliveries(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted, pageable);
     }
 
     @PostMapping("/deliveries")
     public SpinningDeliveryResponse createDelivery(@Valid @RequestBody SpinningDeliveryCreateRequest request) {
-        log.info("Creating spinning delivery. styleAutoId='{}', deliveryDate={}", request.styleAutoId(), request.deliveryDate());
+        log.info("Creating spinning delivery. styleAutoId='{}', sectionAutoId='{}', deliveryDate={}", 
+                request.styleAutoId(), request.stitchingSectionAutoId(), request.deliveryDate());
         return spinningService.createDelivery(request);
     }
 
@@ -88,12 +91,13 @@ public class SpinningController {
     @GetMapping("/dashboard")
     public SpinningDashboardResponse getDashboard(
             @RequestParam(required = false) String styleAutoId,
+            @RequestParam(required = false) String sectionAutoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(defaultValue = "false") boolean includeDeleted
     ) {
-        log.info("Fetching spinning dashboard. styleAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
-                styleAutoId, fromDate, toDate, includeDeleted);
-        return spinningService.getDashboard(styleAutoId, fromDate, toDate, includeDeleted);
+        log.info("Fetching spinning dashboard. styleAutoId='{}', sectionAutoId='{}', fromDate={}, toDate={}, includeDeleted={}",
+                styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
+        return spinningService.getDashboard(styleAutoId, sectionAutoId, fromDate, toDate, includeDeleted);
     }
 }

@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface CuttingEntryRowRepository extends JpaRepository<CuttingEntryRow, UUID> {
 
     @Query("""
-            select coalesce(sum(r.quantityUsedKgs * c.pcsPerKg), 0)
+            select coalesce(sum(c.totalOutputPieces), 0)
             from CuttingEntry c
             join c.rows r
             where c.isDeleted = false

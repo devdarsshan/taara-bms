@@ -1,15 +1,66 @@
 <section class="ops-page">
   <section class="ops-summary-grid">
-    @for (card of summaryCards(); track card.title) {
-      <article [class]="'ops-summary-card ops-summary-card--' + card.tone">
-        <div class="ops-summary-topline">
-          <span class="ops-summary-title">{{ card.title }}</span>
-          <div class="ops-summary-icon"><i [class]="card.icon"></i></div>
+    <!-- Row 1: Stitched Plain + Packed -->
+    <div style="grid-column: 1 / -1; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <article class="ops-summary-card ops-summary-card--indigo" style="flex: 3 1 40rem; flex-direction: row; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; flex-wrap: wrap;">
+        <div style="display: flex; flex-direction: column; gap: 0.25rem; flex: 0 0 auto;">
+          <span class="ops-summary-title">Stitched Plain Available</span>
+          <div style="display: flex; align-items: baseline; gap: 0.75rem;">
+            <strong class="ops-summary-value" style="font-size: 2.25rem; margin: 0; line-height: 1;">{{ dashboard()?.totalStitchedPlainPieces ?? 0 }}</strong>
+            <span class="ops-summary-subtitle" style="font-size: 0.85rem;">Pieces ready for packing.</span>
+          </div>
         </div>
-        <strong class="ops-summary-value">{{ card.value }}</strong>
-        <p>{{ card.note }}</p>
+        
+        <div style="display: flex; flex: 1 1 500px; border-left: 1px solid var(--app-border); padding-left: 1.5rem; margin-left: 1.5rem; justify-content: space-around; gap: 0.75rem; align-items: center;">
+          @for (item of stitchedPlainBreakdown(); track item.size) {
+            <div class="ops-summary-size-item" style="padding: 0.5rem 1rem; min-width: 4.5rem; gap: 0.15rem; border-radius: 0.5rem; flex: 1; max-width: 7rem;">
+              <span style="font-size: 0.75rem; color: var(--app-muted); font-weight: 700; text-transform: uppercase;">{{ item.size }}</span>
+              <strong style="font-size: 1.25rem; color: var(--app-text-strong); line-height: 1;">{{ item.total }}</strong>
+            </div>
+          }
+        </div>
       </article>
-    }
+
+      <article class="ops-summary-card ops-summary-card--ocean" style="flex: 1 1 15rem;">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">Packed Pieces</span>
+          <div class="ops-summary-icon"><i class="pi pi-box"></i></div>
+        </div>
+        <strong class="ops-summary-value">{{ dashboard()?.totalPackedPieces ?? 0 }}</strong>
+        <p>Pieces packed successfully.</p>
+      </article>
+    </div>
+
+    <!-- Row 2: Printed + Defective -->
+    <div style="grid-column: 1 / -1; display: flex; gap: 1rem; flex-wrap: wrap;">
+      <article class="ops-summary-card ops-summary-card--purple" style="flex: 3 1 40rem; flex-direction: row; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; flex-wrap: wrap;">
+        <div style="display: flex; flex-direction: column; gap: 0.25rem; flex: 0 0 auto;">
+          <span class="ops-summary-title">Printed Available</span>
+          <div style="display: flex; align-items: baseline; gap: 0.75rem;">
+            <strong class="ops-summary-value" style="font-size: 2.25rem; margin: 0; line-height: 1;">{{ dashboard()?.totalPrintedPieces ?? 0 }}</strong>
+            <span class="ops-summary-subtitle" style="font-size: 0.85rem;">Printed pieces ready for packing.</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; flex: 1 1 500px; border-left: 1px solid var(--app-border); padding-left: 1.5rem; margin-left: 1.5rem; justify-content: space-around; gap: 0.75rem; align-items: center;">
+          @for (item of printedBreakdown(); track item.size) {
+            <div class="ops-summary-size-item" style="padding: 0.5rem 1rem; min-width: 4.5rem; gap: 0.15rem; border-radius: 0.5rem; flex: 1; max-width: 7rem;">
+              <span style="font-size: 0.75rem; color: var(--app-muted); font-weight: 700; text-transform: uppercase;">{{ item.size }}</span>
+              <strong style="font-size: 1.25rem; color: var(--app-text-strong); line-height: 1;">{{ item.total }}</strong>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="ops-summary-card ops-summary-card--amber" style="flex: 1 1 15rem;">
+        <div class="ops-summary-topline">
+          <span class="ops-summary-title">Defective Pieces</span>
+          <div class="ops-summary-icon"><i class="pi pi-exclamation-triangle"></i></div>
+        </div>
+        <strong class="ops-summary-value">{{ dashboard()?.totalDefectivePieces ?? 0 }}</strong>
+        <p>Pieces rejected during packing.</p>
+      </article>
+    </div>
   </section>
 
   <section class="ops-panel">
@@ -48,7 +99,7 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-record>
-        <tr (click)="openDetail(record)">
+        <tr (click)="openEdit(record)">
           <td (click)="$event.stopPropagation()"><p-tableCheckbox [value]="record"></p-tableCheckbox></td>
           <td class="ops-table-id">{{ record.autoId }}</td>
           <td>{{ record.packingDate | date: 'dd MMM yyyy' }}</td>
@@ -64,7 +115,7 @@
   </section>
 </section>
 
-<p-dialog [visible]="dialogVisible()" [modal]="true" [style]="{ width: '44rem', maxWidth: '95vw' }" header="Create Packing Entry" (visibleChange)="dialogVisible.set($event)">
+<p-dialog [visible]="dialogVisible()" [modal]="true" [style]="{ width: '44rem', maxWidth: '95vw' }" [header]="editingId() ? 'Update Packing Entry' : 'Create Packing Entry'" (visibleChange)="dialogVisible.set($event)">
   <form [formGroup]="form" class="ops-form-grid">
     <div class="ops-form-field"><label>Packing date <span class="app-required">*</span></label><p-datePicker formControlName="packingDate" appendTo="body"></p-datePicker></div>
     <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Style" (onChange)="refreshAvailability()" appendTo="body"></p-select></div>
@@ -74,7 +125,7 @@
     <div class="ops-form-field"><label>Correctly packed <span class="app-required">*</span></label><p-inputNumber formControlName="correctlyPackedPieces"></p-inputNumber></div>
     <div class="ops-form-field"><label>Defective pieces <span class="app-required">*</span></label><p-inputNumber formControlName="defectivePieces"></p-inputNumber></div>
     <div class="ops-dialog-actions ops-form-field--full">
-      <button pButton type="button" label="Save Entry" (click)="save()"></button>
+      <button pButton type="button" [label]="editingId() ? 'Update Entry' : 'Save Entry'" (click)="save()"></button>
     </div>
   </form>
 </p-dialog>

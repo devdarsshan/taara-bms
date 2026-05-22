@@ -3,6 +3,7 @@ package com.taara.bms.service.stitching;
 import com.taara.bms.dto.stitching.SectionPendingPiecesResponse;
 import com.taara.bms.dto.stitching.StitchingAvailabilityResponse;
 import com.taara.bms.dto.stitching.StitchingDashboardResponse;
+import com.taara.bms.dto.inhouse.ReadyToStitchBreakdownResponse;
 import com.taara.bms.dto.stitching.StitchingDeliveryCreateRequest;
 import com.taara.bms.dto.stitching.StitchingDeliveryResponse;
 import com.taara.bms.dto.stitching.StitchingOrderCreateRequest;
@@ -330,6 +331,8 @@ public class StitchingService {
                 pendingOrdersCount,
                 partialOrdersCount,
                 defectivePieces,
+                inHouseService.calculateReadyToStitchTotal(styleAutoId),
+                inHouseService.getReadyToStitchBreakdown(),
                 ordersBySection
         );
     }

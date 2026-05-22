@@ -9,8 +9,10 @@ import com.taara.bms.dto.inhouse.CuttingUpdateRequest;
 import com.taara.bms.dto.inhouse.InHouseDashboardResponse;
 import com.taara.bms.dto.inhouse.InHouseDeliveryResponse;
 import com.taara.bms.dto.inhouse.InHouseSplitBatchRequest;
+import com.taara.bms.dto.inhouse.InHouseSplitUpdateRequest;
 import com.taara.bms.dto.inhouse.InHouseStockResponse;
 import com.taara.bms.dto.inhouse.InHouseStockSplitResponse;
+import com.taara.bms.dto.inhouse.ReadyToStitchBreakdownResponse;
 import com.taara.bms.dto.inhouse.StitchedStockResponse;
 import com.taara.bms.enums.CuttingStatus;
 import com.taara.bms.service.inhouse.InHouseService;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -80,6 +83,16 @@ public class InHouseController {
     ) {
         log.info("Creating in-house splits. deliveryAutoId='{}', splitCount={}", deliveryAutoId, request.splits().size());
         return inHouseService.createSplits(deliveryAutoId, request);
+    }
+
+    @PutMapping("/deliveries/{deliveryAutoId}/splits/{splitAutoId}")
+    public InHouseStockSplitResponse updateSplit(
+            @PathVariable String deliveryAutoId,
+            @PathVariable String splitAutoId,
+            @Valid @RequestBody InHouseSplitUpdateRequest request
+    ) {
+        log.info("Updating in-house split. deliveryAutoId='{}', splitAutoId='{}'", deliveryAutoId, splitAutoId);
+        return inHouseService.updateSplit(deliveryAutoId, splitAutoId, request);
     }
 
     @DeleteMapping("/deliveries/{deliveryAutoId}/splits/{splitAutoId}")
@@ -147,6 +160,12 @@ public class InHouseController {
     ) {
         log.info("Fetching stitched stock. styleAutoId='{}', fromDate={}, toDate={}", styleAutoId, fromDate, toDate);
         return inHouseService.getStitchedStock(styleAutoId, fromDate, toDate);
+    }
+
+    @GetMapping("/ready-to-stitch")
+    public List<ReadyToStitchBreakdownResponse> getReadyToStitchBreakdown() {
+        log.info("Fetching ready-to-stitch breakdown");
+        return inHouseService.getReadyToStitchBreakdown();
     }
 
     @GetMapping("/dashboard")

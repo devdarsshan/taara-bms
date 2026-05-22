@@ -11,8 +11,10 @@ import com.taara.bms.dto.inhouse.InHouseDashboardResponse;
 import com.taara.bms.dto.inhouse.InHouseDeliveryResponse;
 import com.taara.bms.dto.inhouse.InHouseSplitBatchRequest;
 import com.taara.bms.dto.inhouse.InHouseSplitRequest;
+import com.taara.bms.dto.inhouse.InHouseSplitUpdateRequest;
 import com.taara.bms.dto.inhouse.InHouseStockResponse;
 import com.taara.bms.dto.inhouse.InHouseStockSplitResponse;
+import com.taara.bms.dto.inhouse.ReadyToStitchBreakdownResponse;
 import com.taara.bms.dto.inhouse.StitchedStockResponse;
 import com.taara.bms.entity.inhouse.CuttingEntry;
 import com.taara.bms.entity.inhouse.CuttingEntryRow;
@@ -199,6 +201,74 @@ public class InHouseService {
     }
 
     @Transactional
+    public InHouseStockSplitResponse updateSplit(String deliveryAutoId, String splitAutoId, InHouseSplitUpdateRequest request) {
+        log.info("Updating split '{}' for delivery '{}'", splitAutoId, deliveryAutoId);
+        InHouseDelivery delivery = lookupService.getActiveInHouseDeliveryByAutoId(deliveryAutoId);
+        InHouseStockSplit split = lookupService.getActiveInHouseStockSplitByAutoId(splitAutoId);
+
+        if (!split.getDelivery().getId().equals(delivery.getId())) {
+            throw new BusinessValidationException("SPLIT_DELIVERY_MISMATCH", "The selected split does not belong to this delivery");
+        }
+
+        BigDecimal newQuantity = BigDecimalUtils.scale(request.quantityKgs());
+        BigDecimal totalQuantity = BigDecimalUtils.scale(delivery.getQuantityKgs());
+        BigDecimal currentAllocated = BigDecimalUtils.scale(inHouseStockSplitRepository.sumActiveQuantityByDelivery(delivery.getId()));
+        BigDecimal otherAllocated = currentAllocated.subtract(BigDecimalUtils.scale(split.getQuantityKgs()));
+
+        if (otherAllocated.add(newQuantity).compareTo(totalQuantity) > 0) {
+            throw new BusinessValidationException(
+                    "SPLIT_EXCEEDS_DELIVERY",
+                    "Split quantity exceeds the available delivery quantity",
+                    Map.of(
+                            "deliveryAutoId", delivery.getAutoId(),
+                            "deliveryQuantityKgs", totalQuantity,
+                            "alreadyAllocatedQuantityKgs", otherAllocated,
+                            "requestedQuantityKgs", newQuantity
+                    )
+            );
+        }
+
+        Dia oldDia = split.getDia();
+        Dia newDia = lookupService.getActiveDiaByAutoId(request.diaAutoId());
+
+        if (!oldDia.getId().equals(newDia.getId()) || newQuantity.compareTo(split.getQuantityKgs()) < 0) {
+            BigDecimal totalSplitStock = BigDecimalUtils.scale(
+                    inHouseStockSplitRepository.sumActiveQuantityByDiaAndStyle(oldDia.getId(), split.getStyle().getId())
+            );
+            BigDecimal totalAddedStock = BigDecimalUtils.scale(
+                    existingStockRepository.sumQuantityByDiaAndStyle(oldDia.getId(), split.getStyle().getId())
+            );
+            BigDecimal totalCuttingUsage = BigDecimalUtils.scale(
+                    cuttingEntryRowRepository.sumActiveQuantityUsedByDiaAndStyle(oldDia.getId(), split.getStyle().getId())
+            );
+            
+            BigDecimal remainingIfUpdated;
+            if (!oldDia.getId().equals(newDia.getId())) {
+                remainingIfUpdated = totalSplitStock.add(totalAddedStock).subtract(BigDecimalUtils.scale(split.getQuantityKgs()));
+            } else {
+                remainingIfUpdated = totalSplitStock.add(totalAddedStock)
+                        .subtract(BigDecimalUtils.scale(split.getQuantityKgs()))
+                        .add(newQuantity);
+            }
+
+            if (remainingIfUpdated.compareTo(totalCuttingUsage) < 0) {
+                throw new BusinessValidationException(
+                        "SPLIT_UPDATE_CONFLICT",
+                        "Cannot update split because downstream cutting already depends on this stock",
+                        Map.of("splitAutoId", split.getAutoId())
+                );
+            }
+        }
+
+        split.setDia(newDia);
+        split.setQuantityKgs(newQuantity);
+        inHouseStockSplitRepository.save(split);
+
+        recalculateSplitStatus(delivery);
+        return mapper.toSplitResponse(split, canDeleteSplit(split));
+    }
+
+    @Transactional
     public void deleteSplit(String deliveryAutoId, String splitAutoId) {
         log.info("Deleting split '{}' from delivery '{}'", splitAutoId, deliveryAutoId);
         InHouseDelivery delivery = lookupService.getActiveInHouseDeliveryByAutoId(deliveryAutoId);
@@ -354,6 +424,66 @@ public class InHouseService {
     public List<StitchedStockResponse> getStitchedStock(String styleAutoId, LocalDate fromDate, LocalDate toDate) {
         log.info("Calculating stitched stock with styleAutoId='{}', fromDate={}, toDate={}", styleAutoId, fromDate, toDate);
         return buildStitchedStock(styleAutoId, fromDate, toDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReadyToStitchBreakdownResponse> getReadyToStitchBreakdown() {
+        log.info("Calculating ready-to-stitch breakdown by size");
+        Map<GarmentSize, Integer> breakdown = new EnumMap<>(GarmentSize.class);
+
+        Map<UUID, Map<GarmentSize, Integer>> stylesAndSizes = new HashMap<>();
+        for (CuttingEntryRow row : cuttingEntryRowRepository.findAllActiveRows()) {
+            stylesAndSizes
+                    .computeIfAbsent(row.getStyle().getId(), ignored -> new EnumMap<>(GarmentSize.class))
+                    .put(row.getSize(), 0);
+        }
+
+        for (Map.Entry<UUID, Map<GarmentSize, Integer>> entry : stylesAndSizes.entrySet()) {
+            UUID styleId = entry.getKey();
+            for (GarmentSize size : entry.getValue().keySet()) {
+                int available = calculateReadyToStitchAvailable(styleId, size);
+                if (available > 0) {
+                    breakdown.merge(size, available, Integer::sum);
+                }
+            }
+        }
+
+        return breakdown.entrySet().stream()
+                .map(e -> new ReadyToStitchBreakdownResponse(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(r -> r.size().name()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReadyToStitchBreakdownResponse> getStitchedPlainBreakdown() {
+        log.info("Calculating stitched plain breakdown by size");
+        Map<GarmentSize, Integer> breakdown = new EnumMap<>(GarmentSize.class);
+        List<StitchedStockResponse> allStock = buildStitchedStock(null, null, null);
+        for (StitchedStockResponse row : allStock) {
+            if (row.plainPieces() > 0) {
+                breakdown.merge(row.size(), row.plainPieces(), Integer::sum);
+            }
+        }
+        return breakdown.entrySet().stream()
+                .map(e -> new ReadyToStitchBreakdownResponse(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(r -> r.size().name()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReadyToStitchBreakdownResponse> getPrintedBreakdown() {
+        log.info("Calculating printed breakdown by size");
+        Map<GarmentSize, Integer> breakdown = new EnumMap<>(GarmentSize.class);
+        List<StitchedStockResponse> allStock = buildStitchedStock(null, null, null);
+        for (StitchedStockResponse row : allStock) {
+            if (row.printedPieces() > 0) {
+                breakdown.merge(row.size(), row.printedPieces(), Integer::sum);
+            }
+        }
+        return breakdown.entrySet().stream()
+                .map(e -> new ReadyToStitchBreakdownResponse(e.getKey(), e.getValue()))
+                .sorted(Comparator.comparing(r -> r.size().name()))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -646,7 +776,8 @@ public class InHouseService {
                 .toList();
     }
 
-    private int calculateReadyToStitchTotal(String styleAutoId) {
+    @Transactional(readOnly = true)
+    public int calculateReadyToStitchTotal(String styleAutoId) {
         Map<UUID, EnumMap<GarmentSize, Integer>> availableByStyleAndSize = new HashMap<>();
         for (CuttingEntryRow row : cuttingEntryRowRepository.findAllActiveRows()) {
             if (!matchesStyle(row.getStyle(), styleAutoId)) {

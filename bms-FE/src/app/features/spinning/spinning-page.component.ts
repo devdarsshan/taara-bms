@@ -404,13 +404,56 @@ export class SpinningPageComponent {
     this.deliveryCreateVisible.set(false);
   }
 
+  private resetOrderForm(): void {
+    this.orderError.set(null);
+    this.createOrderForm.reset({ 
+        dispatchDate: new Date(), 
+        styleAutoId: '', 
+        stitchingSectionAutoId: '', 
+        linkedYarnOrderAutoId: '', 
+        quantitySentKgs: null, 
+        factoryNotes: '' 
+    });
+  }
+
+  private resetDeliveryForm(): void {
+    this.deliveryError.set(null);
+    this.availableYarnQuantity.set(null);
+    this.createDeliveryForm.reset({ 
+        deliveryDate: new Date(), 
+        styleAutoId: '', 
+        stitchingSectionAutoId: '', 
+        actualQuantityKgs: null, 
+        bufferQuantityKgs: 0, 
+        pricePerKg: 1, 
+        paidAmount: null, 
+        notes: '' 
+    });
+  }
+
   handleOrderCreateVisibilityChange(visible: boolean): void {
     if (visible) {
       this.orderCreateVisible.set(true);
       return;
     }
 
-    this.closeOrderCreateDialog();
+    if (this.createOrderForm.dirty) {
+      this.confirmationService.confirm({
+        header: 'Discard knitting order changes',
+        message: 'You have unsaved changes. Do you want to close this form?',
+        acceptLabel: 'Discard',
+        rejectLabel: 'Keep editing',
+        acceptButtonStyleClass: 'p-button-danger',
+        rejectButtonStyleClass: 'p-button-outlined p-button-secondary',
+        accept: () => {
+          this.orderCreateVisible.set(false);
+          this.resetOrderForm();
+        }
+      });
+    } else {
+      this.orderCreateVisible.set(false);
+      this.resetOrderForm();
+    }
   }
 
   handleDeliveryCreateVisibilityChange(visible: boolean): void {

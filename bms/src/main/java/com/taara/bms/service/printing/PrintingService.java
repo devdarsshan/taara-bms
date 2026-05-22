@@ -136,6 +136,50 @@ public class PrintingService {
     }
 
     @Transactional
+    public PrintingOrderResponse updateOrder(String orderAutoId, com.taara.bms.dto.printing.PrintingOrderUpdateRequest request) {
+        PrintingOrder order = lookupService.getActivePrintingOrderByAutoId(orderAutoId);
+        
+        StitchingSection section = lookupService.getActiveSectionByAutoId(request.printingSectionAutoId());
+        if (section.getProcessType() != SectionProcessType.PRINTING) {
+            throw new BusinessValidationException("INVALID_PRINTING_SECTION", "The selected section is not configured for printing");
+        }
+        Style style = lookupService.getActiveStyleByAutoId(request.styleAutoId());
+        
+        int availablePieces = inHouseService.calculateStitchedPlainAvailable(style.getId(), request.size());
+        
+        if (order.getStyle().getId().equals(style.getId()) && order.getSize() == request.size()) {
+            availablePieces += order.getPiecesOrdered();
+        }
+        
+        if (request.piecesOrdered() > availablePieces) {
+            throw new BusinessValidationException(
+                    "PRINTING_ORDER_EXCEEDS_AVAILABLE",
+                    "Pieces ordered exceed the available stitched plain stock for the selected style and size",
+                    Map.of("availablePieces", availablePieces, "requestedPieces", request.piecesOrdered())
+            );
+        }
+        
+        int delivered = Objects.requireNonNullElse(printingDeliveryRepository.sumActiveDeliveredByOrder(order.getId()), 0);
+        if (request.piecesOrdered() < delivered) {
+            throw new BusinessValidationException(
+                    "PRINTING_ORDER_BELOW_DELIVERED",
+                    "Pieces ordered cannot be less than already delivered pieces",
+                    Map.of("deliveredPieces", delivered, "requestedPieces", request.piecesOrdered())
+            );
+        }
+
+        order.setOrderDate(request.orderDate());
+        order.setPrintingSection(section);
+        order.setStyle(style);
+        order.setSize(request.size());
+        order.setPiecesOrdered(request.piecesOrdered());
+        order.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().trim());
+        
+        updatePrintingOrderStatus(order);
+        return toOrderResponse(order);
+    }
+
+    @Transactional
     public void deleteOrder(String orderAutoId) {
         PrintingOrder order = lookupService.getActivePrintingOrderByAutoId(orderAutoId);
         if (Objects.requireNonNullElse(printingDeliveryRepository.sumActiveDeliveredByOrder(order.getId()), 0) > 0) {
@@ -169,6 +213,39 @@ public class PrintingService {
         delivery.setPiecesDelivered(request.piecesDelivered());
         PrintingDelivery saved = printingDeliveryRepository.save(delivery);
         updatePrintingOrderStatus(order);
+        return toDeliveryResponse(saved);
+    }
+
+    @Transactional
+    public PrintingDeliveryResponse updateDelivery(String deliveryAutoId, com.taara.bms.dto.printing.PrintingDeliveryUpdateRequest request) {
+        PrintingDelivery delivery = lookupService.getActivePrintingDeliveryByAutoId(deliveryAutoId);
+        PrintingOrder currentOrder = delivery.getPrintingOrder();
+        PrintingOrder newOrder = lookupService.getActivePrintingOrderByAutoId(request.printingOrderAutoId());
+        
+        int deliveredBefore = Objects.requireNonNullElse(printingDeliveryRepository.sumActiveDeliveredByOrder(newOrder.getId()), 0);
+        if (currentOrder.getId().equals(newOrder.getId())) {
+            deliveredBefore -= delivery.getPiecesDelivered();
+        }
+        
+        int pending = Math.max(newOrder.getPiecesOrdered() - deliveredBefore, 0);
+        if (request.piecesDelivered() > pending) {
+            throw new BusinessValidationException(
+                    "PRINTING_DELIVERY_EXCEEDS_PENDING",
+                    "Delivered pcs exceed the pending pcs for this printing order",
+                    Map.of("availablePieces", pending, "requestedPieces", request.piecesDelivered())
+            );
+        }
+
+        delivery.setDeliveryDate(request.deliveryDate());
+        delivery.setPrintingOrder(newOrder);
+        delivery.setPiecesDelivered(request.piecesDelivered());
+        PrintingDelivery saved = printingDeliveryRepository.save(delivery);
+        
+        if (!currentOrder.getId().equals(newOrder.getId())) {
+            updatePrintingOrderStatus(currentOrder);
+        }
+        updatePrintingOrderStatus(newOrder);
+        
         return toDeliveryResponse(saved);
     }
 
@@ -210,7 +287,10 @@ public class PrintingService {
                 .filter(order -> order.getStatus() == StitchingOrderStatus.COMPLETE)
                 .mapToInt(this::pendingPieces)
                 .sum();
-        return new PrintingDashboardResponse(totalPiecesInPrinting, deliveredPieces, pendingOrdersCount, defectivePieces);
+                
+        int stitchedStockTotal = inHouseService.getStitchedPlainBreakdown().stream().mapToInt(com.taara.bms.dto.inhouse.ReadyToStitchBreakdownResponse::totalPieces).sum();
+
+        return new PrintingDashboardResponse(totalPiecesInPrinting, deliveredPieces, pendingOrdersCount, defectivePieces, stitchedStockTotal, inHouseService.getStitchedPlainBreakdown());
     }
 
     private void updatePrintingOrderStatus(PrintingOrder order) {

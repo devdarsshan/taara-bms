@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.taara.bms.dto.packing.PackingUpdateRequest;
+import org.springframework.web.bind.annotation.PutMapping;
+
 @RestController
 @RequestMapping("/api/packing")
 public class PackingController {
@@ -55,6 +58,13 @@ public class PackingController {
         log.info("Creating packing entry. styleAutoId='{}', size={}, stockType={}, packed={}, defective={}",
                 request.styleAutoId(), request.size(), request.stockType(), request.correctlyPackedPieces(), request.defectivePieces());
         return packingService.createEntry(request);
+    }
+
+    @PutMapping("/entries/{packingAutoId}")
+    public PackingResponse updateEntry(@PathVariable String packingAutoId, @Valid @RequestBody PackingUpdateRequest request) {
+        log.info("Updating packing entry. packingAutoId='{}', styleAutoId='{}', size={}, stockType={}, packed={}, defective={}",
+                packingAutoId, request.styleAutoId(), request.size(), request.stockType(), request.correctlyPackedPieces(), request.defectivePieces());
+        return packingService.updateEntry(packingAutoId, request);
     }
 
     @GetMapping("/available-pieces")

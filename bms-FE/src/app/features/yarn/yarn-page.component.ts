@@ -330,7 +330,35 @@ export class YarnPageComponent {
       return;
     }
 
-    this.closeCreateDialog();
+    if (this.createForm.dirty) {
+      this.confirmationService.confirm({
+        header: 'Discard yarn order changes',
+        message: 'You have unsaved changes. Do you want to close this form?',
+        acceptLabel: 'Discard',
+        rejectLabel: 'Keep editing',
+        acceptButtonStyleClass: 'p-button-danger',
+        rejectButtonStyleClass: 'p-button-outlined p-button-secondary',
+        accept: () => {
+          this.createVisible.set(false);
+          this.resetCreateForm();
+        }
+      });
+    } else {
+      this.createVisible.set(false);
+      this.resetCreateForm();
+    }
+  }
+
+  private resetCreateForm(): void {
+    this.editingOrder.set(null);
+    this.createError.set(null);
+    this.createForm.reset({
+      orderDate: new Date(),
+      styleAutoId: '',
+      quantityKgs: null,
+      stitchingSectionAutoId: '',
+      supplierNotes: ''
+    });
   }
 
   isInvalid(control: AbstractControl | null): boolean {

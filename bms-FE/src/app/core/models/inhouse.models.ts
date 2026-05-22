@@ -1,4 +1,4 @@
-import { DiaRef, GarmentSize, StyleRef } from './common.models';
+import { DiaRef, GarmentSize, ReadyToStitchBreakdownResponse, StyleRef } from './common.models';
 
 export type SplitStatus = 'PENDING' | 'PARTIALLY_SPLIT' | 'FULLY_SPLIT';
 export type CuttingStatus = 'IN_PROGRESS' | 'COMPLETED';
@@ -82,7 +82,16 @@ export interface StitchedStock {
   defectivePieces: number;
 }
 
+export interface InHouseSplitRequest {
+  diaAutoId: string;
+  quantityKgs: number;
+}
+
 export interface InHouseSplitBatchRequest {
+  splits: InHouseSplitRequest[];
+}
+
+export interface CuttingAvailability {
   splits: Array<{
     diaAutoId: string;
     quantityKgs: number;

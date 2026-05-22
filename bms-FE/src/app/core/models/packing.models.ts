@@ -1,4 +1,4 @@
-import { GarmentSize, PieceAvailability, StyleRef } from './common.models';
+import { GarmentSize, PieceAvailability, ReadyToStitchBreakdownResponse, StyleRef } from './common.models';
 
 export type PackingStockType = 'PLAIN' | 'PRINTED';
 
@@ -20,9 +20,22 @@ export interface PackingEntry {
 export interface PackingDashboardResponse {
   totalPackedPieces: number;
   totalDefectivePieces: number;
+  totalStitchedPlainPieces: number;
+  totalPrintedPieces: number;
+  stitchedPlainBreakdown: ReadyToStitchBreakdownResponse[];
+  printedBreakdown: ReadyToStitchBreakdownResponse[];
 }
 
 export interface PackingCreateRequest {
+  packingDate: string;
+  styleAutoId: string;
+  size: GarmentSize;
+  stockType: PackingStockType;
+  correctlyPackedPieces: number;
+  defectivePieces: number;
+}
+
+export interface PackingUpdateRequest {
   packingDate: string;
   styleAutoId: string;
   size: GarmentSize;

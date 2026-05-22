@@ -202,7 +202,7 @@
   </p-tabView>
 </section>
 
-<p-dialog [visible]="deliveryDialogVisible()" [modal]="true" [style]="{ width: '64rem', maxWidth: '95vw' }" header="Delivery Details" (visibleChange)="deliveryDialogVisible.set($event)">
+<p-dialog [visible]="deliveryDialogVisible()" [modal]="true" [style]="{ width: '48rem', maxWidth: '95vw' }" header="Fabric split details" (visibleChange)="handleDeliveryDialogVisibilityChange($event)">
   @if (deliveryDetail(); as delivery) {
     <div class="ops-page">
       <div class="ops-detail-grid">
@@ -278,7 +278,7 @@
   }
 </p-dialog>
 
-<p-dialog [visible]="existingStockDialogVisible()" [modal]="true" [style]="{ width: '40rem', maxWidth: '95vw' }" header="Add Existing Stock" (visibleChange)="existingStockDialogVisible.set($event)">
+<p-dialog [visible]="existingStockDialogVisible()" [modal]="true" [style]="{ width: '40rem', maxWidth: '95vw' }" header="Add Existing Stock" (visibleChange)="handleExistingStockDialogVisibilityChange($event)">
   <form [formGroup]="existingStockForm" class="ops-form-grid">
     <div class="ops-form-field"><label>Entry date <span class="app-required">*</span></label><p-datePicker formControlName="entryDate" appendTo="body"></p-datePicker></div>
     <div class="ops-form-field"><label>Dia <span class="app-required">*</span></label><p-select [options]="diaOptions()" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Select Dia" appendTo="body"></p-select></div>
@@ -292,13 +292,13 @@
   </form>
 </p-dialog>
 
-<p-dialog [visible]="cuttingDialogVisible()" [modal]="true" [style]="{ width: '72rem', maxWidth: '96vw' }" [header]="editingCutting() ? 'Update Cutting' : 'Create Cutting'" (visibleChange)="cuttingDialogVisible.set($event)">
+<p-dialog [visible]="cuttingDialogVisible()" [modal]="true" [style]="{ width: '72rem', maxWidth: '96vw' }" [header]="editingCutting() ? 'Update Cutting' : 'Create Cutting'" (visibleChange)="handleCuttingDialogVisibilityChange($event)">
   <form [formGroup]="cuttingForm" class="ops-form-grid">
-    <div class="ops-form-field"><label>Cutting date <span class="app-required">*</span></label><p-datePicker formControlName="cuttingDate" appendTo="body"></p-datePicker></div>
-    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Select Style" (onChange)="refreshCuttingAvailability()" appendTo="body"></p-select></div>
-    <div class="ops-form-field"><label>Size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Select Size" appendTo="body"></p-select></div>
-    <div class="ops-form-field"><label>Rate / pcs <span class="app-required">*</span></label><p-inputNumber formControlName="ratePerPiece" mode="currency" currency="INR" [minFractionDigits]="2"></p-inputNumber></div>
-    <div class="ops-form-field"><label>Total output pcs <span class="app-required">*</span></label><p-inputNumber formControlName="totalOutputPieces"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Cutting date <span class="app-required">*</span></label><p-datePicker formControlName="cuttingDate" appendTo="body" [class.app-control-invalid]="isInvalid(cuttingForm.controls.cuttingDate)"></p-datePicker></div>
+    <div class="ops-form-field"><label>Style <span class="app-required">*</span></label><p-select [options]="styleOptions()" formControlName="styleAutoId" optionLabel="label" optionValue="value" placeholder="Select Style" (onChange)="refreshCuttingAvailability()" appendTo="body" [class.app-control-invalid]="isInvalid(cuttingForm.controls.styleAutoId)"></p-select></div>
+    <div class="ops-form-field"><label>Size <span class="app-required">*</span></label><p-select [options]="sizeOptions" formControlName="size" optionLabel="label" optionValue="value" placeholder="Select Size" appendTo="body" [class.app-control-invalid]="isInvalid(cuttingForm.controls.size)"></p-select></div>
+    <div class="ops-form-field"><label>Rate / pcs <span class="app-required">*</span></label><p-inputNumber formControlName="ratePerPiece" mode="currency" currency="INR" [minFractionDigits]="2" [class.app-control-invalid]="isInvalid(cuttingForm.controls.ratePerPiece)"></p-inputNumber></div>
+    <div class="ops-form-field"><label>Total output pcs <span class="app-required">*</span></label><p-inputNumber formControlName="totalOutputPieces" [class.app-control-invalid]="isInvalid(cuttingForm.controls.totalOutputPieces)"></p-inputNumber></div>
     <div class="ops-form-field"><label>Total Cost</label><p-inputNumber [ngModel]="totalCost()" [ngModelOptions]="{standalone: true}" mode="currency" currency="INR" [disabled]="true"></p-inputNumber></div>
     <div class="ops-form-field ops-form-field--full"><label>Notes</label><input pInputText formControlName="notes" /></div>
 
@@ -307,9 +307,9 @@
       <div formArrayName="rows" class="ops-line-stack">
         @for (row of cuttingRows.controls; track $index) {
           <div class="ops-inline-form ops-inline-grid ops-inline-grid--four" [formGroupName]="$index">
-            <p-select [options]="getAvailableDiaOptions($index)" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" (onChange)="onCuttingComboChange($index)" appendTo="body"></p-select>
+            <p-select [options]="getAvailableDiaOptions($index)" formControlName="diaAutoId" optionLabel="label" optionValue="value" placeholder="Dia" (onChange)="onCuttingComboChange($index)" appendTo="body" [class.app-control-invalid]="isInvalid(row.controls.diaAutoId)"></p-select>
             <p-inputNumber formControlName="availableQuantityKgs" mode="decimal" [readonly]="true" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg"></p-inputNumber>
-            <p-inputNumber formControlName="quantityUsedKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg" placeholder="Used kg"></p-inputNumber>
+            <p-inputNumber formControlName="quantityUsedKgs" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" suffix=" kg" placeholder="Used kg" [class.app-control-invalid]="isInvalid(row.controls.quantityUsedKgs)"></p-inputNumber>
             <button pButton type="button" icon="pi pi-trash" severity="danger" [outlined]="true" (click)="removeCuttingRow($index)"></button>
           </div>
         }

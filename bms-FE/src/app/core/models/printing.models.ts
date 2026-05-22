@@ -1,4 +1,4 @@
-import { GarmentSize, PieceAvailability, StitchingSectionRef, StyleRef } from './common.models';
+import { GarmentSize, PieceAvailability, ReadyToStitchBreakdownResponse, StitchingSectionRef, StyleRef } from './common.models';
 import { StitchingOrderStatus } from './stitching.models';
 
 export interface PrintingOrder {
@@ -37,6 +37,8 @@ export interface PrintingDashboardResponse {
   deliveredPiecesFromPrinting: number;
   pendingOrdersCount: number;
   defectivePiecesFinalized: number;
+  stitchedStockPieces: number;
+  stitchedStockBreakdown: ReadyToStitchBreakdownResponse[];
 }
 
 export interface PrintingOrderCreateRequest {
@@ -48,7 +50,22 @@ export interface PrintingOrderCreateRequest {
   notes?: string | null;
 }
 
+export interface PrintingOrderUpdateRequest {
+  orderDate: string;
+  printingSectionAutoId: string;
+  styleAutoId: string;
+  size: GarmentSize;
+  piecesOrdered: number;
+  notes?: string | null;
+}
+
 export interface PrintingDeliveryCreateRequest {
+  deliveryDate: string;
+  printingOrderAutoId: string;
+  piecesDelivered: number;
+}
+
+export interface PrintingDeliveryUpdateRequest {
   deliveryDate: string;
   printingOrderAutoId: string;
   piecesDelivered: number;

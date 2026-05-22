@@ -28,6 +28,11 @@ export interface PieceAvailability {
   availablePieces: number;
 }
 
+export interface ReadyToStitchBreakdownResponse {
+  size: GarmentSize;
+  totalPieces: number;
+}
+
 export interface OptionItem<T = string> {
   label: string;
   value: T;

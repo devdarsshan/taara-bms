@@ -42,8 +42,6 @@ type SplitRowForm = FormGroup<{
 
 type CuttingRowForm = FormGroup<{
   diaAutoId: FormControl<string>;
-  styleAutoId: FormControl<string>;
-  size: FormControl<GarmentSize>;
   availableQuantityKgs: FormControl<number | null>;
   quantityUsedKgs: FormControl<number | null>;
   ratePerPiece: FormControl<number | null>;
@@ -297,28 +295,44 @@ export class InHousePageComponent {
       });
   }
 
+  handleDeliveryDialogVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.deliveryDetail.set(null);
+      this.splitForm.reset();
+      this.splitRows.clear();
+      this.splitError.set(null);
+    }
+    this.deliveryDialogVisible.set(visible);
+  }
+
+  handleExistingStockDialogVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.existingStockForm.reset({ entryDate: new Date(), diaAutoId: '', styleAutoId: '', quantityKgs: null, notes: '' });
+    }
+    this.existingStockDialogVisible.set(visible);
+  }
+
+  handleCuttingDialogVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.editingCutting.set(null);
+      this.cuttingForm.reset({ cuttingDate: new Date(), totalOutputPieces: null, styleAutoId: '', size: 'M', ratePerPiece: null, notes: '' });
+      this.cuttingRows.clear();
+    }
+    this.cuttingDialogVisible.set(visible);
+  }
+
   openDelivery(record: InHouseDelivery): void {
     this.deliveryDetail.set(record);
     this.deliveryDialogVisible.set(true);
     this.splitError.set(null);
     this.splitRows.clear();
     this.addSplitRow();
+    
     this.inHouseApi.getSplits(record.autoId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (splits) => {
           this.deliverySplits.set(splits);
-          this.splitRows.clear();
-          if (splits.length > 0) {
-            splits.forEach(split => {
-              this.splitRows.push(this.fb.group({
-                diaAutoId: this.fb.control(split.dia.autoId, Validators.required),
-                quantityKgs: this.fb.control<number | null>(split.quantityKgs, [Validators.required, Validators.min(0.01)])
-              }));
-            });
-          } else {
-            this.addSplitRow();
-          }
         },
         error: (error) => this.notificationService.error('Unable to load splits', getApiErrorMessage(error))
       });
@@ -336,6 +350,8 @@ export class InHousePageComponent {
     this.splitError.set(null);
     if (this.splitRows.length > 1) {
       this.splitRows.removeAt(index);
+    } else {
+      this.splitRows.at(0).reset({ diaAutoId: '', quantityKgs: null });
     }
   }
 
@@ -347,13 +363,21 @@ export class InHousePageComponent {
       this.notificationService.warn('Splits not saved', 'Complete the highlighted split fields before saving.');
       return;
     }
+
+    const newRows = this.splitRows.getRawValue().filter(row => !!row.diaAutoId && (row.quantityKgs ?? 0) > 0);
+    if (newRows.length === 0) {
+      this.splitError.set('Add at least one valid split row.');
+      return;
+    }
+
     this.splitError.set(null);
     const payload = {
-      splits: this.splitRows.getRawValue().map((row) => ({
+      splits: newRows.map((row) => ({
         diaAutoId: row.diaAutoId,
         quantityKgs: Number(row.quantityKgs ?? 0)
       }))
     };
+    
     this.inHouseApi.createSplits(delivery.autoId, payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -440,6 +464,7 @@ export class InHousePageComponent {
   saveExistingStock(): void {
     if (this.existingStockForm.invalid) {
       this.existingStockForm.markAllAsTouched();
+      this.notificationService.warn('Form Invalid', this.getFormValidationMessage(this.existingStockForm));
       return;
     }
     const value = this.existingStockForm.getRawValue();
@@ -480,8 +505,6 @@ export class InHousePageComponent {
       const group = this.createCuttingRow();
       group.patchValue({
         diaAutoId: row.dia?.autoId || '',
-        styleAutoId: row.style?.autoId || '',
-        size: row.size || 'M',
         quantityUsedKgs: row.quantityUsedKgs,
         ratePerPiece: row.ratePerPiece ?? null,
         availableQuantityKgs: null
@@ -517,9 +540,15 @@ export class InHousePageComponent {
   saveCutting(): void {
     if (this.cuttingForm.invalid) {
       this.cuttingForm.markAllAsTouched();
+      this.notificationService.warn('Form Invalid', this.getFormValidationMessage(this.cuttingForm));
       return;
     }
     const value = this.cuttingForm.getRawValue();
+    if (this.cuttingRows.length === 0) {
+      this.notificationService.warn('No Rows', 'Please add at least one cutting row (fabric used).');
+      return;
+    }
+
     const payload: CuttingCreateRequest = {
       cuttingDate: this.toApiDate(value.cuttingDate ?? new Date()),
       totalOutputPieces: Number(value.totalOutputPieces ?? 0),
@@ -597,8 +626,6 @@ export class InHousePageComponent {
   private createCuttingRow(): CuttingRowForm {
     const group = this.fb.group({
       diaAutoId: this.fb.control('', Validators.required),
-      styleAutoId: this.fb.control('', Validators.required),
-      size: this.fb.control<GarmentSize>('M', Validators.required),
       availableQuantityKgs: this.fb.control<number | null>({ value: null, disabled: true }),
       quantityUsedKgs: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
       ratePerPiece: this.fb.control<number | null>(null, [Validators.min(0)])
@@ -633,6 +660,33 @@ export class InHousePageComponent {
 
   cuttingSeverity(status: string): 'success' | 'warn' {
     return status === 'COMPLETED' ? 'success' : 'warn';
+  }
+
+  private getFormValidationMessage(form: FormGroup): string {
+    const invalidFields: string[] = [];
+    Object.keys(form.controls).forEach(key => {
+      const control = form.get(key);
+      if (control?.invalid) {
+        if (control instanceof FormArray) {
+          control.controls.forEach((group, index) => {
+            if (group.invalid && group instanceof FormGroup) {
+              Object.keys(group.controls).forEach(subKey => {
+                if (group.get(subKey)?.invalid) {
+                  invalidFields.push(`${key} row ${index + 1}: ${subKey}`);
+                }
+              });
+            }
+          });
+        } else {
+          invalidFields.push(key);
+        }
+      }
+    });
+
+    if (invalidFields.length > 0) {
+      return `Invalid fields: ${invalidFields.join(', ')}`;
+    }
+    return 'Please check all required fields.';
   }
 
   isInvalid(control: AbstractControl | null): boolean {

@@ -1,4 +1,4 @@
-import { GarmentSize, StitchingSectionRef, StyleRef } from './common.models';
+import { GarmentSize, ReadyToStitchBreakdownResponse, StitchingSectionRef, StyleRef } from './common.models';
 
 export type StitchingOrderStatus = 'PENDING' | 'PARTIALLY_DELIVERED' | 'COMPLETE' | 'AUTO_CLOSED';
 
@@ -19,6 +19,8 @@ export interface StitchingDashboardResponse {
   pendingOrdersCount: number;
   partiallyDeliveredOrdersCount: number;
   defectivePiecesFinalized: number;
+  readyToStitchPieces: number;
+  readyToStitchBreakdown: ReadyToStitchBreakdownResponse[];
   ordersBySection: SectionPendingPiecesResponse[];
 }
 

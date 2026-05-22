@@ -5,8 +5,10 @@ import {
   PrintingDashboardResponse,
   PrintingDelivery,
   PrintingDeliveryCreateRequest,
+  PrintingDeliveryUpdateRequest,
   PrintingOrder,
-  PrintingOrderCreateRequest
+  PrintingOrderCreateRequest,
+  PrintingOrderUpdateRequest
 } from '../models/printing.models';
 import { StitchingOrderStatus, StitchingOrderStatusUpdateRequest } from '../models/stitching.models';
 import { ApiService } from './api.service';
@@ -25,6 +27,10 @@ export class PrintingApiService {
 
   createOrder(payload: PrintingOrderCreateRequest) {
     return this.api.post<PrintingOrder, PrintingOrderCreateRequest>('/printing/orders', payload);
+  }
+
+  updateOrder(orderAutoId: string, payload: PrintingOrderUpdateRequest) {
+    return this.api.put<PrintingOrder, PrintingOrderUpdateRequest>(`/printing/orders/${orderAutoId}`, payload);
   }
 
   getAvailableOrderPieces(styleAutoId: string, size: GarmentSize) {
@@ -47,6 +53,10 @@ export class PrintingApiService {
 
   createDelivery(payload: PrintingDeliveryCreateRequest) {
     return this.api.post<PrintingDelivery, PrintingDeliveryCreateRequest>('/printing/deliveries', payload);
+  }
+
+  updateDelivery(deliveryAutoId: string, payload: PrintingDeliveryUpdateRequest) {
+    return this.api.put<PrintingDelivery, PrintingDeliveryUpdateRequest>(`/printing/deliveries/${deliveryAutoId}`, payload);
   }
 
   getAvailableDeliveryPieces(orderAutoId: string) {

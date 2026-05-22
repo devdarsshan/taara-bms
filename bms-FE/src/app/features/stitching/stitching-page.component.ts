@@ -179,6 +179,15 @@ export class StitchingPageComponent {
     this.loadData();
   }
 
+  readonly readyToStitchBreakdown = computed(() => {
+    const breakdown = this.dashboard()?.readyToStitchBreakdown ?? [];
+    const sizeMap = new Map(breakdown.map(item => [item.size, item.totalPieces]));
+    return this.sizeOptions.map(opt => ({
+      size: opt.value,
+      total: sizeMap.get(opt.value) || 0
+    }));
+  });
+
   loadData(): void {
     this.loading.set(true);
     forkJoin({
@@ -203,6 +212,74 @@ export class StitchingPageComponent {
           this.notificationService.error('Unable to load stitching module', getApiErrorMessage(error));
         }
       });
+  }
+
+  handleOrderDialogVisibilityChange(visible: boolean): void {
+    if (visible) {
+      this.orderDialogVisible.set(true);
+      return;
+    }
+
+    if (this.orderForm.dirty) {
+      this.confirmationService.confirm({
+        header: 'Discard order changes',
+        message: 'You have unsaved changes. Do you want to close this form?',
+        acceptLabel: 'Discard',
+        rejectLabel: 'Keep editing',
+        acceptButtonStyleClass: 'p-button-danger',
+        rejectButtonStyleClass: 'p-button-outlined p-button-secondary',
+        accept: () => {
+          this.orderDialogVisible.set(false);
+          this.resetOrderForm();
+        }
+      });
+    } else {
+      this.orderDialogVisible.set(false);
+      this.resetOrderForm();
+    }
+  }
+
+  handleDeliveryDialogVisibilityChange(visible: boolean): void {
+    if (visible) {
+      this.deliveryDialogVisible.set(true);
+      return;
+    }
+
+    this.deliveryDialogVisible.set(false);
+    this.resetDeliveryForm();
+  }
+
+  handleOrderDetailVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.orderDetail.set(null);
+      this.statusForm.reset();
+    }
+    this.orderDetailVisible.set(visible);
+  }
+
+  handleDeliveryDetailVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.deliveryDetail.set(null);
+    }
+    this.deliveryDetailVisible.set(visible);
+  }
+
+  private resetOrderForm(): void {
+    this.editingOrder.set(null);
+    this.orderForm.reset({ orderDate: new Date(), stitchingSectionAutoId: '', notes: '' });
+    this.orderRows.clear();
+  }
+
+  private resetDeliveryForm(): void {
+    this.deliveryAvailability.set(null);
+    this.deliveryForm.reset({ 
+        deliveryDate: new Date(), 
+        stitchingSectionAutoId: '', 
+        styleAutoId: '', 
+        size: 'M', 
+        availablePieces: null, 
+        piecesDelivered: null 
+    });
   }
 
   openCreateOrder(): void {

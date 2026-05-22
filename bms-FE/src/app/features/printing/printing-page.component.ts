@@ -66,6 +66,8 @@ export class PrintingPageComponent {
   readonly deliveryDialogVisible = signal(false);
   readonly orderDetailVisible = signal(false);
   readonly deliveryDetailVisible = signal(false);
+  readonly editingOrderId = signal<string | null>(null);
+  readonly editingDeliveryId = signal<string | null>(null);
   readonly orderDetail = signal<PrintingOrder | null>(null);
   readonly deliveryDetail = signal<PrintingDelivery | null>(null);
   readonly orderAvailability = signal<number | null>(null);
@@ -122,6 +124,15 @@ export class PrintingPageComponent {
     ];
   });
 
+  readonly stitchedStockBreakdown = computed(() => {
+    const breakdown = this.dashboard()?.stitchedStockBreakdown ?? [];
+    const sizeMap = new Map(breakdown.map(item => [item.size, item.totalPieces]));
+    return this.sizeOptions.map(opt => ({
+      size: opt.value,
+      total: sizeMap.get(opt.value) || 0
+    }));
+  });
+
   constructor() {
     this.loadData();
     
@@ -174,9 +185,98 @@ export class PrintingPageComponent {
     });
   }
 
+  handleOrderDialogVisibilityChange(visible: boolean): void {
+    if (visible) {
+      this.orderDialogVisible.set(true);
+      return;
+    }
+
+    if (this.orderForm.dirty) {
+      this.confirmationService.confirm({
+        header: 'Discard order changes',
+        message: 'You have unsaved changes. Do you want to close this form?',
+        acceptLabel: 'Discard',
+        rejectLabel: 'Keep editing',
+        acceptButtonStyleClass: 'p-button-danger',
+        rejectButtonStyleClass: 'p-button-outlined p-button-secondary',
+        accept: () => {
+          this.orderDialogVisible.set(false);
+          this.resetOrderForm();
+        }
+      });
+    } else {
+      this.orderDialogVisible.set(false);
+      this.resetOrderForm();
+    }
+  }
+
+  handleDeliveryDialogVisibilityChange(visible: boolean): void {
+    if (visible) {
+      this.deliveryDialogVisible.set(true);
+      return;
+    }
+
+    this.deliveryDialogVisible.set(false);
+    this.resetDeliveryForm();
+  }
+
+  handleOrderDetailVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.orderDetail.set(null);
+    }
+    this.orderDetailVisible.set(visible);
+  }
+
+  handleDeliveryDetailVisibilityChange(visible: boolean): void {
+    if (!visible) {
+      this.deliveryDetail.set(null);
+    }
+    this.deliveryDetailVisible.set(visible);
+  }
+
+  private resetOrderForm(): void {
+    this.editingOrderId.set(null);
+    this.orderAvailability.set(null);
+    this.orderForm.reset({ 
+        orderDate: new Date(), 
+        printingSectionAutoId: '', 
+        styleAutoId: '', 
+        size: 'M', 
+        availablePieces: null, 
+        piecesOrdered: null, 
+        notes: '' 
+    });
+  }
+
+  private resetDeliveryForm(): void {
+    this.editingDeliveryId.set(null);
+    this.deliveryAvailability.set(null);
+    this.deliveryForm.reset({ 
+        deliveryDate: new Date(), 
+        printingOrderAutoId: '', 
+        availablePieces: null, 
+        piecesDelivered: null 
+    });
+  }
+
   openCreateOrder(): void {
+    this.resetOrderForm();
     this.orderDialogVisible.set(true);
-    this.orderForm.reset({ orderDate: new Date(), printingSectionAutoId: '', styleAutoId: '', size: 'M', availablePieces: null, piecesOrdered: null, notes: '' });
+  }
+
+  openEditOrder(record: PrintingOrder): void {
+    this.editingOrderId.set(record.autoId);
+    this.orderForm.reset({
+      orderDate: new Date(record.orderDate),
+      printingSectionAutoId: record.printingSection.autoId,
+      styleAutoId: record.style.autoId,
+      size: record.size,
+      availablePieces: null,
+      piecesOrdered: record.piecesOrdered,
+      notes: record.notes ?? ''
+    });
+    this.refreshOrderAvailability();
+    this.orderDialogVisible.set(true);
   }
 
   refreshOrderAvailability(): void {
@@ -187,7 +287,17 @@ export class PrintingPageComponent {
     }
     this.printingApi.getAvailableOrderPieces(value.styleAutoId, value.size)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (response) => this.orderForm.controls.availablePieces.setValue(response.availablePieces) });
+      .subscribe({ next: (response) => {
+        let available = response.availablePieces;
+        const editingId = this.editingOrderId();
+        if (editingId) {
+          const order = this.orders().find(o => o.autoId === editingId);
+          if (order && order.style.autoId === value.styleAutoId && order.size === value.size) {
+            available += order.piecesOrdered;
+          }
+        }
+        this.orderForm.controls.availablePieces.setValue(available);
+      }});
   }
 
   saveOrder(): void {
@@ -196,26 +306,45 @@ export class PrintingPageComponent {
       return;
     }
     const value = this.orderForm.getRawValue();
-    this.printingApi.createOrder({
+    const payload = {
       orderDate: this.toApiDate(value.orderDate ?? new Date()),
       printingSectionAutoId: value.printingSectionAutoId,
       styleAutoId: value.styleAutoId,
       size: value.size,
       piecesOrdered: Number(value.piecesOrdered ?? 0),
       notes: value.notes?.trim() || null
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    };
+
+    const editingId = this.editingOrderId();
+    const req$ = editingId 
+      ? this.printingApi.updateOrder(editingId, payload)
+      : this.printingApi.createOrder(payload);
+
+    req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.notificationService.success('Printing order saved', 'The printing order was saved.');
+        this.notificationService.success(`Printing order ${editingId ? 'updated' : 'saved'}`, `The printing order was ${editingId ? 'updated' : 'saved'}.`);
         this.orderDialogVisible.set(false);
         this.loadData();
       },
-      error: (error) => this.notificationService.error('Unable to save printing order', getApiErrorMessage(error))
+      error: (error) => this.notificationService.error(`Unable to ${editingId ? 'update' : 'save'} printing order`, getApiErrorMessage(error))
     });
   }
 
   openCreateDelivery(): void {
+    this.resetDeliveryForm();
     this.deliveryDialogVisible.set(true);
-    this.deliveryForm.reset({ deliveryDate: new Date(), printingOrderAutoId: '', availablePieces: null, piecesDelivered: null });
+  }
+
+  openEditDelivery(record: PrintingDelivery): void {
+    this.editingDeliveryId.set(record.autoId);
+    this.deliveryForm.reset({
+      deliveryDate: new Date(record.deliveryDate),
+      printingOrderAutoId: record.printingOrderAutoId,
+      availablePieces: null,
+      piecesDelivered: record.piecesDelivered
+    });
+    this.refreshDeliveryAvailability();
+    this.deliveryDialogVisible.set(true);
   }
 
   openOrderDetail(record: PrintingOrder): void {
@@ -236,7 +365,17 @@ export class PrintingPageComponent {
     }
     this.printingApi.getAvailableDeliveryPieces(orderAutoId)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (response) => this.deliveryForm.controls.availablePieces.setValue(response.availablePieces) });
+      .subscribe({ next: (response) => {
+        let available = response.availablePieces;
+        const editingId = this.editingDeliveryId();
+        if (editingId) {
+          const delivery = this.deliveries().find(d => d.autoId === editingId);
+          if (delivery && delivery.printingOrderAutoId === orderAutoId) {
+            available += delivery.piecesDelivered;
+          }
+        }
+        this.deliveryForm.controls.availablePieces.setValue(available);
+      }});
   }
 
   saveDelivery(): void {
@@ -245,17 +384,24 @@ export class PrintingPageComponent {
       return;
     }
     const value = this.deliveryForm.getRawValue();
-    this.printingApi.createDelivery({
+    const payload = {
       deliveryDate: this.toApiDate(value.deliveryDate ?? new Date()),
       printingOrderAutoId: value.printingOrderAutoId,
       piecesDelivered: Number(value.piecesDelivered ?? 0)
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    };
+
+    const editingId = this.editingDeliveryId();
+    const req$ = editingId 
+      ? this.printingApi.updateDelivery(editingId, payload)
+      : this.printingApi.createDelivery(payload);
+
+    req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.notificationService.success('Printing delivery saved', 'The printing delivery was saved.');
+        this.notificationService.success(`Printing delivery ${editingId ? 'updated' : 'saved'}`, `The printing delivery was ${editingId ? 'updated' : 'saved'}.`);
         this.deliveryDialogVisible.set(false);
         this.loadData();
       },
-      error: (error) => this.notificationService.error('Unable to save printing delivery', getApiErrorMessage(error))
+      error: (error: any) => this.notificationService.error(`Unable to ${editingId ? 'update' : 'save'} printing delivery`, getApiErrorMessage(error))
     });
   }
 

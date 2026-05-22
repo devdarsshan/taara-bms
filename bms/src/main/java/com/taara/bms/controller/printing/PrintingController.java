@@ -3,8 +3,10 @@ package com.taara.bms.controller.printing;
 import com.taara.bms.dto.common.PieceAvailabilityResponse;
 import com.taara.bms.dto.printing.PrintingDashboardResponse;
 import com.taara.bms.dto.printing.PrintingDeliveryCreateRequest;
+import com.taara.bms.dto.printing.PrintingDeliveryUpdateRequest;
 import com.taara.bms.dto.printing.PrintingDeliveryResponse;
 import com.taara.bms.dto.printing.PrintingOrderCreateRequest;
+import com.taara.bms.dto.printing.PrintingOrderUpdateRequest;
 import com.taara.bms.dto.printing.PrintingOrderResponse;
 import com.taara.bms.dto.stitching.StitchingOrderStatusUpdateRequest;
 import com.taara.bms.enums.GarmentSize;
@@ -62,6 +64,13 @@ public class PrintingController {
         return printingService.createOrder(request);
     }
 
+    @org.springframework.web.bind.annotation.PutMapping("/orders/{orderAutoId}")
+    public PrintingOrderResponse updateOrder(@PathVariable String orderAutoId, @Valid @RequestBody PrintingOrderUpdateRequest request) {
+        log.info("Updating printing order. orderAutoId='{}', sectionAutoId='{}', styleAutoId='{}', size={}, piecesOrdered={}",
+                orderAutoId, request.printingSectionAutoId(), request.styleAutoId(), request.size(), request.piecesOrdered());
+        return printingService.updateOrder(orderAutoId, request);
+    }
+
     @GetMapping("/available-order-pieces")
     public PieceAvailabilityResponse getAvailableOrderPieces(
             @RequestParam String styleAutoId,
@@ -100,8 +109,16 @@ public class PrintingController {
 
     @PostMapping("/deliveries")
     public PrintingDeliveryResponse createDelivery(@Valid @RequestBody PrintingDeliveryCreateRequest request) {
-        log.info("Creating printing delivery. orderAutoId='{}', piecesDelivered={}", request.printingOrderAutoId(), request.piecesDelivered());
+        log.info("Creating printing delivery. orderAutoId='{}', piecesDelivered={}",
+                request.printingOrderAutoId(), request.piecesDelivered());
         return printingService.createDelivery(request);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/deliveries/{deliveryAutoId}")
+    public PrintingDeliveryResponse updateDelivery(@PathVariable String deliveryAutoId, @Valid @RequestBody PrintingDeliveryUpdateRequest request) {
+        log.info("Updating printing delivery. deliveryAutoId='{}', orderAutoId='{}', piecesDelivered={}",
+                deliveryAutoId, request.printingOrderAutoId(), request.piecesDelivered());
+        return printingService.updateDelivery(deliveryAutoId, request);
     }
 
     @GetMapping("/available-delivery-pieces")

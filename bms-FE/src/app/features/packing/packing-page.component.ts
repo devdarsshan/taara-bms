@@ -42,6 +42,7 @@ export class PackingPageComponent {
   readonly loading = signal(true);
   readonly dialogVisible = signal(false);
   readonly detailVisible = signal(false);
+  readonly editingId = signal<string | null>(null);
   readonly detail = signal<PackingEntry | null>(null);
   readonly selectedEntries = signal<PackingEntry[]>([]);
 
@@ -75,6 +76,24 @@ export class PackingPageComponent {
     ];
   });
 
+  readonly stitchedPlainBreakdown = computed(() => {
+    const breakdown = this.dashboard()?.stitchedPlainBreakdown ?? [];
+    const sizeMap = new Map(breakdown.map(item => [item.size, item.totalPieces]));
+    return this.sizeOptions.map(opt => ({
+      size: opt.value,
+      total: sizeMap.get(opt.value) || 0
+    }));
+  });
+
+  readonly printedBreakdown = computed(() => {
+    const breakdown = this.dashboard()?.printedBreakdown ?? [];
+    const sizeMap = new Map(breakdown.map(item => [item.size, item.totalPieces]));
+    return this.sizeOptions.map(opt => ({
+      size: opt.value,
+      total: sizeMap.get(opt.value) || 0
+    }));
+  });
+
   constructor() {
     this.loadData();
   }
@@ -100,8 +119,24 @@ export class PackingPageComponent {
   }
 
   openCreate(): void {
+    this.editingId.set(null);
     this.dialogVisible.set(true);
     this.form.reset({ packingDate: new Date(), styleAutoId: '', size: 'M', stockType: 'PLAIN', availablePieces: null, correctlyPackedPieces: null, defectivePieces: 0 });
+  }
+
+  openEdit(record: PackingEntry): void {
+    this.editingId.set(record.autoId);
+    this.form.reset({
+      packingDate: new Date(record.packingDate),
+      styleAutoId: record.style.autoId,
+      size: record.size,
+      stockType: record.stockType,
+      availablePieces: null,
+      correctlyPackedPieces: record.correctlyPackedPieces,
+      defectivePieces: record.defectivePieces
+    });
+    this.refreshAvailability();
+    this.dialogVisible.set(true);
   }
 
   openDetail(record: PackingEntry): void {
@@ -117,7 +152,17 @@ export class PackingPageComponent {
     }
     this.packingApi.getAvailablePieces(value.styleAutoId, value.size, value.stockType)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (response) => this.form.controls.availablePieces.setValue(response.availablePieces) });
+      .subscribe({ next: (response) => {
+        let available = response.availablePieces;
+        const editingId = this.editingId();
+        if (editingId) {
+          const entry = this.entries().find(e => e.autoId === editingId);
+          if (entry && entry.style.autoId === value.styleAutoId && entry.size === value.size && entry.stockType === value.stockType) {
+            available += entry.correctlyPackedPieces + entry.defectivePieces;
+          }
+        }
+        this.form.controls.availablePieces.setValue(available);
+      }});
   }
 
   save(): void {
@@ -126,20 +171,27 @@ export class PackingPageComponent {
       return;
     }
     const value = this.form.getRawValue();
-    this.packingApi.createEntry({
+    const payload = {
       packingDate: this.toApiDate(value.packingDate ?? new Date()),
       styleAutoId: value.styleAutoId,
       size: value.size,
       stockType: value.stockType,
       correctlyPackedPieces: Number(value.correctlyPackedPieces ?? 0),
       defectivePieces: Number(value.defectivePieces ?? 0)
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    };
+
+    const editingId = this.editingId();
+    const req$ = editingId 
+      ? this.packingApi.updateEntry(editingId, payload)
+      : this.packingApi.createEntry(payload);
+
+    req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.notificationService.success('Packing saved', 'The packing entry was saved.');
+        this.notificationService.success(`Packing ${editingId ? 'updated' : 'saved'}`, `The packing entry was ${editingId ? 'updated' : 'saved'}.`);
         this.dialogVisible.set(false);
         this.loadData();
       },
-      error: (error) => this.notificationService.error('Unable to save packing entry', getApiErrorMessage(error))
+      error: (error) => this.notificationService.error(`Unable to ${editingId ? 'update' : 'save'} packing entry`, getApiErrorMessage(error))
     });
   }
 

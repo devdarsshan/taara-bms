@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { PageResponse, QueryOptions } from '../models/api.models';
 import { GarmentSize, PieceAvailability } from '../models/common.models';
-import { PackingCreateRequest, PackingDashboardResponse, PackingEntry, PackingStockType } from '../models/packing.models';
+import { PackingCreateRequest, PackingDashboardResponse, PackingEntry, PackingStockType, PackingUpdateRequest } from '../models/packing.models';
 import { ApiService } from './api.service';
 
 @Injectable({
@@ -32,6 +32,10 @@ export class PackingApiService {
 
   createEntry(payload: PackingCreateRequest) {
     return this.api.post<PackingEntry, PackingCreateRequest>('/packing/entries', payload);
+  }
+
+  updateEntry(packingAutoId: string, payload: PackingUpdateRequest) {
+    return this.api.put<PackingEntry, PackingUpdateRequest>(`/packing/entries/${packingAutoId}`, payload);
   }
 
   getAvailablePieces(styleAutoId: string, size: GarmentSize, stockType: PackingStockType) {

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { PageResponse, QueryOptions } from '../models/api.models';
+import { ReadyToStitchBreakdownResponse } from '../models/common.models';
 import {
   CuttingAvailability,
   CuttingCreateRequest,
@@ -36,7 +37,7 @@ export class InHouseApiService {
   }
 
   updateSplit(deliveryAutoId: string, splitAutoId: string, payload: { diaAutoId: string; quantityKgs: number }) {
-    return this.api.patch<InHouseSplit, { diaAutoId: string; quantityKgs: number }>(`/inhouse/deliveries/${deliveryAutoId}/splits/${splitAutoId}`, payload);
+    return this.api.put<InHouseSplit, { diaAutoId: string; quantityKgs: number }>(`/inhouse/deliveries/${deliveryAutoId}/splits/${splitAutoId}`, payload);
   }
 
   deleteSplit(deliveryAutoId: string, splitAutoId: string) {
@@ -83,6 +84,10 @@ export class InHouseApiService {
 
   getDashboard(filters?: { diaAutoId?: string; styleAutoId?: string; fromDate?: string; toDate?: string }) {
     return this.api.get<InHouseDashboardResponse>('/inhouse/dashboard', filters);
+  }
+
+  getReadyToStitchBreakdown() {
+    return this.api.get<ReadyToStitchBreakdownResponse[]>('/inhouse/ready-to-stitch');
   }
 
   private toPageParams(
